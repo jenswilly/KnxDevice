@@ -26,6 +26,7 @@
 // 2019-10, JWJ
 
 #include "KnxTpUart.h"
+#include "TimeUtils.h"
 
 static inline uint16_t TimeDeltaWord(uint16_t now, uint16_t before) { return (uint16_t)(now - before); }
 
@@ -93,7 +94,7 @@ uint8_t KnxTpUart::Reset(void)
   }
 
   // CONFIGURATION OF THE ARDUINO USART WITH CORRECT FRAME FORMAT (19200, 8 bits, parity even, 1 stop bit)
-  _serial.begin(19200,SERIAL_8E1);
+  _serial.begin( 19200,SERIAL_8E1 );
   //_serial.begin(19200);
   //UCSR1C = UCSR1C | B00100000; // Even Parity
   
@@ -102,7 +103,7 @@ uint8_t KnxTpUart::Reset(void)
     // the sequence is repeated every sec as long as we do not get the reset indication 
     _serial.write(TPUART_RESET_REQ); // send RESET REQUEST
 
-    for (nowTime = startTime = (uint16_t) millis() ; TimeDeltaWord(nowTime,startTime) < 1000 /* 1 sec */ ; nowTime = (uint16_t)millis())
+    for( nowTime = startTime = TimeUtils::millis(); TimeDeltaWord( nowTime, startTime) < 1000 /* 1 sec */ ; nowTime = TimeUtils::millis())
     {
       if (_serial.available() > 0) 
       {
@@ -278,7 +279,7 @@ void KnxTpUart::RXTask(void)
 {
 	uint8_t incomingByte;
 	uint16_t nowTime;
-	static byte readBytesNb; // Nb of read bytes during an EIB telegram reception
+	static uint8_t readBytesNb; // Nb of read bytes during an EIB telegram reception
 	static KnxTelegram telegram; // telegram being received
 	static uint8_t addressedComObjectIndex; // index of the com object targeted by the received telegram
 	static uint16_t lastByteRxTimeMicrosec;
@@ -286,8 +287,8 @@ void KnxTpUart::RXTask(void)
 // === STEP 1 : Check EOP in case a Telegram is being received ===
   if (_rx.state >= RX_EIB_TELEGRAM_RECEPTION_STARTED)
   { // a telegram reception is ongoing
-    nowTime = (uint16_t) micros(); // uint16_t cast because a 65ms looping counter is long enough
-    if(TimeDeltaWord(nowTime,lastByteRxTimeMicrosec) > 2000 /* 2 ms */ )
+    nowTime = TimeUtils::micros(); // uint16_t cast because a 65ms looping counter is long enough
+    if( TimeDeltaWord( nowTime, lastByteRxTimeMicrosec ) > 2000 /* 2 ms */ )
     { // EOP detected, the telegram reception is completed
 
       switch (_rx.state)
@@ -324,7 +325,7 @@ void KnxTpUart::RXTask(void)
   if (_serial.available() > 0) 
   {
     incomingByte = (uint8_t)(_serial.read());
-    lastByteRxTimeMicrosec = (uint16_t)micros();
+    lastByteRxTimeMicrosec = TimeUtils::micros();
 	
     switch (_rx.state)
     {
@@ -457,7 +458,7 @@ void KnxTpUart::TXTask(void)
   {
   case TX_WAITING_ACK :
     // A transmission ACK is awaited, increment Acknowledge timeout
-    nowTime = (uint16_t) millis(); // uint16_t is enough to count up to 500
+    nowTime = TimeUtils::millis(); // uint16_t is enough to count up to 500
     if(TimeDeltaWord(nowTime,sentMessageTimeMillisec) > 500 /* 500 ms */ )
     { // The no-answer timeout value is defined as follows :
       // - The emission duration for a single max sized telegram is 40ms
@@ -485,7 +486,7 @@ void KnxTpUart::TXTask(void)
           _serial.write(txByte,2); // write the UART control field and the data byte
 
           // Message sending completed
-          sentMessageTimeMillisec = (uint16_t)millis(); // memorize sending time in order to manage ACK timeout
+          sentMessageTimeMillisec = TimeUtils::millis(); // memorize sending time in order to manage ACK timeout
 	  _tx.state = TX_WAITING_ACK;
         }
         else
@@ -518,7 +519,7 @@ bool KnxTpUart::GetMonitoringData(type_MonitorData& data)
   // STEP 1 : Check EOP
   if (!(currentData.isEOP)) // check that we have not already detected an EOP
   {
-    nowTime = (uint16_t) micros(); // uint16_t cast because a 65ms counter is enough
+    nowTime = TimeUtils::micros(); // uint16_t cast because a 65ms counter is enough
     if(TimeDeltaWord(nowTime,lastByteRxTimeMicrosec) > 2000 /* 2 ms */ )
     {  // EOP detected
       currentData.isEOP = true;
@@ -533,7 +534,7 @@ bool KnxTpUart::GetMonitoringData(type_MonitorData& data)
     currentData.dataByte = (uint8_t)(_serial.read());
     currentData.isEOP = false;
     data= currentData;
-    lastByteRxTimeMicrosec = (uint16_t) micros();
+    lastByteRxTimeMicrosec = TimeUtils::micros();
     return true;
   }
   return false; // No data received

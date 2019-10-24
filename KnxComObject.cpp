@@ -26,6 +26,7 @@
 // 2019-10, JWJ
 
 #include "KnxComObject.h"
+#include <iomanip>
 
 // Data length is calculated in the same way as telegram payload length
 uint8_t lengthCalculation( e_KnxDPT_ID dptId )
@@ -106,34 +107,41 @@ void KnxComObject::CopyValue(KnxTelegram& dest) const
 
 
 // DEBUG function
-void KnxComObject::Info(String& str) const
+void KnxComObject::Info(std::string& str) const
 {
 	uint8_t length = GetLength();
-	str+="Addr=" + String(GetAddr(),HEX);
-	str+="\nDPTId=" + String(GetDptId(),HEX);
-	str+="\nIndicator=" + String(GetIndicator(),HEX);
-	str+="\nLength=" + String(length,DEC);
-        str+="\nPrio=";
+	std::stringstream stream;
+	stream << "Addr=" << std::hex << GetAddr();
+	stream << "\nDPTId=" << std::hex << GetDptId();
+	stream << "\nIndicator=" << std::hex << GetIndicator();
+	stream << "\nLength=" << length;
+	stream << "\nPrio=";
 	switch(GetPriority())
 	{
-		case KNX_PRIORITY_SYSTEM_VALUE : str+="SYSTEM"; break;
-		case KNX_PRIORITY_ALARM_VALUE : str+="ALARM"; break;
-		case KNX_PRIORITY_HIGH_VALUE : str+="HIGH"; break;
-		case KNX_PRIORITY_NORMAL_VALUE : str+="NORMAL"; break;
-		default : str+="ERR_VAL!"; break;
+		case KNX_PRIORITY_SYSTEM_VALUE : stream << "SYSTEM"; break;
+		case KNX_PRIORITY_ALARM_VALUE : stream << "ALARM"; break;
+		case KNX_PRIORITY_HIGH_VALUE : stream << "HIGH"; break;
+		case KNX_PRIORITY_NORMAL_VALUE : stream << "NORMAL"; break;
+		default : stream << "ERR_VAL!"; break;
 	}
-	str+="\nValidity="; if (GetValidity()) str+= "YES"; else str+="NO";
+	stream << "\nValidity=" << (GetValidity() ? "YES" : "NO");
 
-	if (length >2) str+="\nShortValue=N/A";
-	else str+="\nShortValue=" + String(GetValue(),HEX);
-	if (length <=2) str+="\nLongValue=N/A";
-	else 
-        {
-		str+="\nLongValue=";
-		uint8_t *longValue = (uint8_t *) malloc(length- 1);
-                GetValue(longValue);
-		for (uint8_t i = 0; i < length-1; i++) str+=String(longValue[i], HEX)+' ';
+	if( length > 2 )
+		stream << "\nShortValue=N/A";
+	else
+		stream << "\nShortValue=" << std::hex << GetValue();
+
+	if( length <= 2 )
+		stream << "\nLongValue=N/A";
+	else  {
+		stream << "\nLongValue=";
+		uint8_t *longValue = (uint8_t*)malloc( length- 1 );
+		GetValue( longValue );
+		for( uint8_t i = 0; i < length-1; i++)
+			stream << std::hex << longValue[i];
 	}
+
+	str += stream.str();
 }
 
 //EOF

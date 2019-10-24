@@ -25,6 +25,7 @@
 // 2019-10, JWJ
 
 #include "KnxDevice.h"
+#include "TimeUtils.h"
 
 static inline uint16_t TimeDeltaWord(uint16_t now, uint16_t before) { return (uint16_t)(now - before); }
 
@@ -56,9 +57,9 @@ KnxDevice::KnxDevice()
 // Start the KNX Device
 // return KNX_DEVICE_ERROR (255) if begin() failed
 // else return KNX_DEVICE_OK
-e_KnxDeviceStatus KnxDevice::begin(HardwareSerial& serial, uint16_t physicalAddr)
+e_KnxDeviceStatus KnxDevice::begin( HardwareSerial& serial, uint16_t physicalAddr )
 {
-  _tpuart = new KnxTpUart(serial ,physicalAddr, NORMAL);
+  _tpuart = new KnxTpUart( serial, physicalAddr, NORMAL );
   _rxTelegram = &_tpuart->GetReceivedTelegram();
   // delay(10000); // Workaround for init issue with bus-powered arduino
                    // the issue is reproduced on one (faulty?) TPUART device only, so remove it for the moment.
@@ -80,8 +81,8 @@ e_KnxDeviceStatus KnxDevice::begin(HardwareSerial& serial, uint16_t physicalAddr
 #if defined(KNXDEVICE_DEBUG_INFO)
   DebugInfo("Init successful\n");
 #endif
-  _lastInitTimeMillis = millis();
-  _lastTXTimeMicros = micros();
+  _lastInitTimeMillis = TimeUtils::millis();
+  _lastTXTimeMicros = TimeUtils::micros();
 #if defined(KNXDEVICE_DEBUG_INFO)
    _nbOfInits = 0;
 #endif
@@ -114,7 +115,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
   // STEP 1 : Initialize Com Objects having Init Read attribute
   if(!_initCompleted)
   { 
-    nowTimeMillis = millis();
+    nowTimeMillis = TimeUtils::millis();
     // To avoid EIB bus overloading, we wait for 500 ms between each Init read request
     if (TimeDeltaWord(nowTimeMillis, _lastInitTimeMillis) > 500 )
     { 
@@ -134,14 +135,14 @@ uint16_t nowTimeMillis, nowTimeMicros;
         action.command = EIB_READ_REQUEST;
         action.index = _initIndex;
         _txActionList.Append(action);
-        _lastInitTimeMillis = millis(); // Update the timer
+        _lastInitTimeMillis = TimeUtils::millis(); // Update the timer
       }
     } 
   }
 
   // STEP 2 : Get new received EIB messages from the TPUART
   // The TPUART RX task is executed every 400 us
-  nowTimeMicros = micros();
+  nowTimeMicros = TimeUtils::micros();
   if (TimeDeltaWord(nowTimeMicros, _lastRXTimeMicros) > 400)
   {
     _lastRXTimeMicros = nowTimeMicros;
@@ -202,7 +203,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
   
   // STEP 4 : LET THE TP-UART TRANSMIT EIB MESSAGES
   // The TPUART TX task is executed every 800 us
-  nowTimeMicros = micros();
+  nowTimeMicros = TimeUtils::micros();
   if (TimeDeltaWord(nowTimeMicros, _lastTXTimeMicros) > 800)
   {
     _lastTXTimeMicros = nowTimeMicros;

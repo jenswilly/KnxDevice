@@ -29,6 +29,7 @@
 #define KNXTELEGRAM_H
 
 #include "lpc_types.h"
+#include <string>
 
 // ---------- Knx Telegram description (visit "www.knx.org" for more info) -----------
 // => Length : 9 bytes min. to 23 bytes max.
@@ -75,41 +76,41 @@
 #define KNX_TELEGRAM_LENGTH_OFFSET      8 // Offset between payload length and telegram length
 
 enum e_KnxPriority {
-  KNX_PRIORITY_SYSTEM_VALUE  = B00000000,
-  KNX_PRIORITY_HIGH_VALUE    = B00000100,
-  KNX_PRIORITY_ALARM_VALUE   = B00001000,
-  KNX_PRIORITY_NORMAL_VALUE  = B00001100
+  KNX_PRIORITY_SYSTEM_VALUE  = 0b00000000,
+  KNX_PRIORITY_HIGH_VALUE    = 0b00000100,
+  KNX_PRIORITY_ALARM_VALUE   = 0b00001000,
+  KNX_PRIORITY_NORMAL_VALUE  = 0b00001100
 };
 
 enum e_KnxCommand {
-  KNX_COMMAND_VALUE_READ     = B00000000,
-  KNX_COMMAND_VALUE_RESPONSE = B00000001,
-  KNX_COMMAND_VALUE_WRITE    = B00000010,
-  KNX_COMMAND_MEMORY_WRITE   = B00001010
+  KNX_COMMAND_VALUE_READ     = 0b00000000,
+  KNX_COMMAND_VALUE_RESPONSE = 0b00000001,
+  KNX_COMMAND_VALUE_WRITE    = 0b00000010,
+  KNX_COMMAND_MEMORY_WRITE   = 0b00001010
 };
 
 //--- CONTROL FIELD values & masks ---
-#define CONTROL_FIELD_DEFAULT_VALUE         B10111100 // Standard FF; No Repeat; Normal Priority
-#define CONTROL_FIELD_FRAME_FORMAT_MASK     B11000000
-#define CONTROL_FIELD_STANDARD_FRAME_FORMAT B10000000
-#define CONTROL_FIELD_REPEATED_MASK         B00100000
-#define CONTROL_FIELD_SET_REPEATED(x)       (x&=B11011111)
-#define CONTROL_FIELD_PRIORITY_MASK         B00001100
-#define CONTROL_FIELD_PATTERN_MASK          B00010011
-#define CONTROL_FIELD_VALID_PATTERN         B00010000
+#define CONTROL_FIELD_DEFAULT_VALUE         0b10111100 // Standard FF; No Repeat; Normal Priority
+#define CONTROL_FIELD_FRAME_FORMAT_MASK     0b11000000
+#define CONTROL_FIELD_STANDARD_FRAME_FORMAT 0b10000000
+#define CONTROL_FIELD_REPEATED_MASK         0b00100000
+#define CONTROL_FIELD_SET_REPEATED(x)       (x&=0b11011111)
+#define CONTROL_FIELD_PRIORITY_MASK         0b00001100
+#define CONTROL_FIELD_PATTERN_MASK          0b00010011
+#define CONTROL_FIELD_VALID_PATTERN         0b00010000
 
 // --- ROUTING FIELD values & masks ---
-#define ROUTING_FIELD_DEFAULT_VALUE            B11100001 // Multicast(Target Group @), Routing Counter = 6, Length = 1
-#define ROUTING_FIELD_TARGET_ADDRESS_TYPE_MASK B10000000
-#define ROUTING_FIELD_COUNTER_MASK             B01110000 
-#define ROUTING_FIELD_PAYLOAD_LENGTH_MASK      B00001111
+#define ROUTING_FIELD_DEFAULT_VALUE            0b11100001 // Multicast(Target Group @), Routing Counter = 6, Length = 1
+#define ROUTING_FIELD_TARGET_ADDRESS_TYPE_MASK 0b10000000
+#define ROUTING_FIELD_COUNTER_MASK             0b01110000
+#define ROUTING_FIELD_PAYLOAD_LENGTH_MASK      0b00001111
 
 // --- COMMAND FIELD values & masks ---
 #define COMMAND_FIELD_HIGH_COMMAND_MASK 0x03 
 #define COMMAND_FIELD_LOW_COMMAND_MASK  0xC0 // 2 first bytes on _commandL
 #define COMMAND_FIELD_LOW_DATA_MASK     0x3F // 6 last bytes are data
-#define COMMAND_FIELD_PATTERN_MASK      B11000000
-#define COMMAND_FIELD_VALID_PATTERN     B00000000
+#define COMMAND_FIELD_PATTERN_MASK      0b11000000
+#define COMMAND_FIELD_VALID_PATTERN     0b00000000
 
 enum e_KnxTelegramValidity { KNX_TELEGRAM_VALID = 0 ,
                              KNX_TELEGRAM_INVALID_CONTROL_FIELD,
@@ -208,9 +209,9 @@ class KnxTelegram {
     e_KnxTelegramValidity GetValidity(void) const;
 
   // DEBUG functions :
-    void Info(String&) const; // copy telegram info into a string
-    void InfoRaw(String&) const; // copy raw data telegram into a string
-    void InfoVerbose(String&) const; // copy verbose telegram info into a string
+    void Info( std::string& ) const; // copy telegram info into a string
+    void InfoRaw( std::string& ) const; // copy raw data telegram into a string
+    void InfoVerbose( std::string& ) const; // copy verbose telegram info into a string
 };
 
 

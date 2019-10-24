@@ -31,6 +31,8 @@
 #include "KnxTelegram.h"
 #include "KnxDPT.h"
 
+#include <string>
+
 // !!!!!!!!!!!!!!! FLAG OPTIONS !!!!!!!!!!!!!!!!!
 // By default, all the objects have NORMAL priority, other priorities are not supported
 // turn KNX_COM_OBJ_SUPPORT_ALL_PRIORITIES flag on to allow support of all the priorities
@@ -40,7 +42,7 @@
 // See "knx.org" for com obj indicators specification
 // INDICATOR field : B7  B6  B5  B4  B3  B2  B1  B0
 //                   xx  xx   C   R   W   T   U   I  
-#define KNX_COM_OBJ_C_INDICATOR	0x20 // Comuunication (C)
+#define KNX_COM_OBJ_C_INDICATOR	0x20 // Communication (C)
 #define KNX_COM_OBJ_R_INDICATOR	0x10 // Read (R)
 #define KNX_COM_OBJ_W_INDICATOR	0x08 // Write (W)
 #define KNX_COM_OBJ_T_INDICATOR	0x04 // Transmit (T)
@@ -146,7 +148,7 @@ public:
 	void CopyValue(KnxTelegram& dest) const;
 
 	// DEBUG function
-	void Info(String&) const;
+	void Info(std::string&) const;
 };
 
 

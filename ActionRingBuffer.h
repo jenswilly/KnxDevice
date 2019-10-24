@@ -101,7 +101,7 @@ class ActionRingBuffer {
 
 
     // Return the current number of data elements in the ring buffer
-    byte ElementsNb(void) const { return _elementsCurrentNb; }
+    uint8_t ElementsNb(void) const { return _elementsCurrentNb; }
 
 
     #ifdef ACTIONRINGBUFFER_STAT

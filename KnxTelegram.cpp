@@ -26,9 +26,9 @@
 // 2019-10, JWJ
 
 #include "KnxTelegram.h"
+#include <iomanip>
 
 KnxTelegram::KnxTelegram() { ClearTelegram(); }; // Clear telegram with default values
-
 
 void KnxTelegram::ClearTelegram(void)
 {
@@ -105,78 +105,106 @@ e_KnxTelegramValidity KnxTelegram::GetValidity(void) const
 };
 
 
-void KnxTelegram::Info(String& str) const
+void KnxTelegram::Info( std::string& str ) const
 {
 	uint8_t payloadLength = GetPayloadLength();
+	std::stringstream stream;
 
-  str+="SrcAddr=" + String(GetSourceAddress(),HEX);
-  str+="\nTargetAddr=" + String(GetTargetAddress(),HEX);
-  str+="\nPayloadLgth=" + String(payloadLength,DEC);
-  str+="\nCommand=";
-  switch(GetCommand())
-  {
-    case KNX_COMMAND_VALUE_READ : str+="VAL_READ"; break;
-    case KNX_COMMAND_VALUE_RESPONSE : str+="VAL_RESP"; break;
-    case KNX_COMMAND_VALUE_WRITE : str+="VAL_WRITE"; break;
-    case KNX_COMMAND_MEMORY_WRITE : str+="MEM_WRITE"; break;
-    default : str+="ERR_VAL!"; break;
-  }
-  str+="\nPayload=" + String(GetFirstPayloadByte(),HEX)+' ';
-  for (uint8_t i = 0; i < payloadLength-1; i++) str+=String(_payloadChecksum[i], HEX)+' ';
-  str+='\n';
+	stream << "SrcAddr=" << std::hex << GetSourceAddress();
+	stream << "\nTargetAddr=" << std::hex << GetTargetAddress();
+	stream << "\nPayloadLgth=" << payloadLength;
+	stream << "\nCommand=";
+
+	switch (GetCommand()) {
+	case KNX_COMMAND_VALUE_READ:
+		stream << "VAL_READ";
+		break;
+
+	case KNX_COMMAND_VALUE_RESPONSE:
+		stream << "VAL_RESP";
+		break;
+
+	case KNX_COMMAND_VALUE_WRITE:
+		stream << "VAL_WRITE";
+		break;
+
+	case KNX_COMMAND_MEMORY_WRITE:
+		stream << "MEM_WRITE";
+		break;
+
+	default:
+		stream << "ERR_VAL!";
+		break;
+	}
+	stream << "\nPayload=" << std::hex << GetFirstPayloadByte() << ' ';
+	for( uint8_t i = 0; i < payloadLength - 1; i++ )
+		stream << std::hex << _payloadChecksum[i] << ' ';
+	stream << '\n';
+
+	str += stream.str();
 }
 
 
-void KnxTelegram::KnxTelegram::InfoRaw(String& str) const
+void KnxTelegram::KnxTelegram::InfoRaw( std::string& str ) const
 {
-  for (uint8_t i = 0; i < KNX_TELEGRAM_MAX_SIZE; i++) str+=String(_telegram[i], HEX)+' ';
-  str+='\n';
+	std::stringstream stream;
+	for( uint8_t i = 0; i < KNX_TELEGRAM_MAX_SIZE; i++ )
+		stream << std::hex << _telegram[i] << ' ';
+
+	str += stream.str();
 }
 
 
-void KnxTelegram::InfoVerbose(String& str) const
+void KnxTelegram::InfoVerbose( std::string& str ) const
 {
+	std::stringstream stream;
 	uint8_t payloadLength = GetPayloadLength();
-  str+= "Repeat="; str+= IsRepeated() ? "YES" : "NO";
-  str+="\nPrio=";
-  switch(GetPriority())
-  {
-    case KNX_PRIORITY_SYSTEM_VALUE : str+="SYSTEM"; break;
-    case KNX_PRIORITY_ALARM_VALUE : str+="ALARM"; break;
-    case KNX_PRIORITY_HIGH_VALUE : str+="HIGH"; break;
-    case KNX_PRIORITY_NORMAL_VALUE : str+="NORMAL"; break;
-    default : str+="ERR_VAL!"; break;
-  }
-  str+="\nSrcAddr=" + String(GetSourceAddress(),HEX);
-  str+="\nTargetAddr=" + String(GetTargetAddress(),HEX);
-  str+="\nGroupAddr="; if (IsMulticast()) str+= "YES"; else str+="NO";
-  str+="\nRout.Counter=" + String(GetRoutingCounter(),DEC);
-  str+="\nPayloadLgth=" + String(payloadLength,DEC);
-  str+="\nTelegramLength=" + String(GetTelegramLength(),DEC);
-  str+="\nCommand=";
-  switch(GetCommand())
-  {
-    case KNX_COMMAND_VALUE_READ : str+="VAL_READ"; break;
-    case KNX_COMMAND_VALUE_RESPONSE : str+="VAL_RESP"; break;
-    case KNX_COMMAND_VALUE_WRITE : str+="VAL_WRITE"; break;
-    case KNX_COMMAND_MEMORY_WRITE : str+="MEM_WRITE"; break;
-    default : str+="ERR_VAL!"; break;
-  }
-  str+="\nPayload=" + String(GetFirstPayloadByte(),HEX)+' ';
-  for (uint8_t i = 0; i < payloadLength-1; i++) str+=String(_payloadChecksum[i], HEX)+' ';
-  str+="\nValidity=";
-   switch(GetValidity())
-  {
-    case KNX_TELEGRAM_VALID : str+="VALID"; break;
-    case KNX_TELEGRAM_INVALID_CONTROL_FIELD : str+="INVALID_CTRL_FIELD"; break;
-    case KNX_TELEGRAM_UNSUPPORTED_FRAME_FORMAT : str+="UNSUPPORTED_FRAME_FORMAT"; break;
-    case KNX_TELEGRAM_INCORRECT_PAYLOAD_LENGTH : str+="INCORRECT_PAYLOAD_LGTH"; break;
-    case KNX_TELEGRAM_INVALID_COMMAND_FIELD : str+="INVALID_CMD_FIELD"; break;
-    case KNX_TELEGRAM_UNKNOWN_COMMAND : str+="UNKNOWN_CMD"; break;
-    case KNX_TELEGRAM_INCORRECT_CHECKSUM : str+="INCORRECT_CHKSUM"; break;
-    default : str+="ERR_VAL!"; break;
-  }
-  str+='\n';
+
+	stream << "Repeat=" << (IsRepeated() ? "YES" : "NO");
+	stream << "\nPrio=";
+	switch(GetPriority())
+	{
+		case KNX_PRIORITY_SYSTEM_VALUE : stream << "SYSTEM"; break;
+		case KNX_PRIORITY_ALARM_VALUE : stream << "ALARM"; break;
+		case KNX_PRIORITY_HIGH_VALUE : stream << "HIGH"; break;
+		case KNX_PRIORITY_NORMAL_VALUE : stream << "NORMAL"; break;
+		default : s$tream << "ERR_VAL!"; break;
+	}
+	stream << "\nSrcAddr=" << std::hex << GetSourceAddress();
+	stream << "\nTargetAddr=" << std::hex << GetTargetAddress();
+	stream << "\nGroupAddr=" << (IsMulticast() ? "YES" : "NO");
+	stream << "\nRout.Counter=" << GetRoutingCounter();
+	stream << "\nPayloadLgth=" << payloadLength;
+	stream << "\nTelegramLength=" << GetTelegramLength();
+	stream << "\nCommand=";
+	switch( GetCommand() )
+	{
+		case KNX_COMMAND_VALUE_READ : stream << "VAL_READ"; break;
+		case KNX_COMMAND_VALUE_RESPONSE : stream << "VAL_RESP"; break;
+		case KNX_COMMAND_VALUE_WRITE : stream << "VAL_WRITE"; break;
+		case KNX_COMMAND_MEMORY_WRITE : stream << "MEM_WRITE"; break;
+		default : stream << "ERR_VAL!"; break;
+	}
+
+	stream << "\nPayload=" << std::hex << GetFirstPayloadByte();
+	for ( uint8_t i = 0; i < payloadLength-1; i++ )
+		stream << std::hex << _payloadChecksum[i] << ' ';
+
+	stream << "\nValidity=";
+	switch(GetValidity())
+	{
+		case KNX_TELEGRAM_VALID : stream << "VALID"; break;
+		case KNX_TELEGRAM_INVALID_CONTROL_FIELD : stream << "INVALID_CTRL_FIELD"; break;
+		case KNX_TELEGRAM_UNSUPPORTED_FRAME_FORMAT : stream << "UNSUPPORTED_FRAME_FORMAT"; break;
+		case KNX_TELEGRAM_INCORRECT_PAYLOAD_LENGTH : stream << "INCORRECT_PAYLOAD_LGTH"; break;
+		case KNX_TELEGRAM_INVALID_COMMAND_FIELD : stream << "INVALID_CMD_FIELD"; break;
+		case KNX_TELEGRAM_UNKNOWN_COMMAND : stream << "UNKNOWN_CMD"; break;
+		case KNX_TELEGRAM_INCORRECT_CHECKSUM : stream << "INCORRECT_CHKSUM"; break;
+		default : stream << "ERR_VAL!"; break;
+	}
+	stream << '\n';
+
+	str += stream.str();
 }
 
 // EOF
