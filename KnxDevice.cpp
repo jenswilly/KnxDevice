@@ -21,9 +21,12 @@
 // Description : KnxDevice Abstraction Layer
 // Module dependencies : HardwareSerial, KnxTelegram, KnxComObject, KnxTpUart, ActionRingBuffer
 
+// Modified:
+// 2019-10, JWJ
+
 #include "KnxDevice.h"
 
-static inline word TimeDeltaWord(word now, word before) { return (word)(now - before); }
+static inline uint16_t TimeDeltaWord(uint16_t now, uint16_t before) { return (uint16_t)(now - before); }
 
 #ifdef KNXDEVICE_DEBUG_INFO
 const char KnxDevice::_debugInfoText[] = "KNXDEVICE INFO: ";
@@ -53,7 +56,7 @@ KnxDevice::KnxDevice()
 // Start the KNX Device
 // return KNX_DEVICE_ERROR (255) if begin() failed
 // else return KNX_DEVICE_OK
-e_KnxDeviceStatus KnxDevice::begin(HardwareSerial& serial, word physicalAddr)
+e_KnxDeviceStatus KnxDevice::begin(HardwareSerial& serial, uint16_t physicalAddr)
 {
   _tpuart = new KnxTpUart(serial ,physicalAddr, NORMAL);
   _rxTelegram = &_tpuart->GetReceivedTelegram();
@@ -106,7 +109,7 @@ type_tx_action action;
 void KnxDevice::task(void)
 {
 type_tx_action action;
-word nowTimeMillis, nowTimeMicros;
+uint16_t nowTimeMillis, nowTimeMicros;
 
   // STEP 1 : Initialize Com Objects having Init Read attribute
   if(!_initCompleted)
@@ -210,7 +213,7 @@ word nowTimeMillis, nowTimeMicros;
 
 // Quick method to read a short (<=1 byte) com object
 // NB : The returned value will be hazardous in case of use with long objects
-byte KnxDevice::read(byte objectIndex)
+uint8_t KnxDevice::read(uint8_t objectIndex)
 {
   return _comObjectsList[objectIndex].GetValue();
 }
@@ -218,7 +221,7 @@ byte KnxDevice::read(byte objectIndex)
 
 // Read an usual format com object
 // Supported DPT formats are short com object, U16, V16, U32, V32, F16 and F32 (not implemented yet)
-template <typename T>  e_KnxDeviceStatus KnxDevice::read(byte objectIndex, T& returnedValue)
+template <typename T>  e_KnxDeviceStatus KnxDevice::read(uint8_t objectIndex, T& returnedValue)
 {
   // Short com object case
   if (_comObjectsList[objectIndex].GetLength()<=2)
@@ -228,26 +231,26 @@ template <typename T>  e_KnxDeviceStatus KnxDevice::read(byte objectIndex, T& re
   }
   else // long object case, let's see if we are able to translate the DPT value
   {
-    byte dptValue[14]; // define temporary DPT value with max length
+	uint8_t dptValue[14]; // define temporary DPT value with max length
     _comObjectsList[objectIndex].GetValue(dptValue);
-    return ConvertFromDpt(dptValue, returnedValue, pgm_read_byte(&KnxDPTIdToFormat[_comObjectsList[objectIndex].GetDptId()]));
+    return ConvertFromDpt( dptValue, returnedValue, KnxDPTIdToFormat[ _comObjectsList[ objectIndex ].GetDptId() ]);
   }
 }
 
-template e_KnxDeviceStatus KnxDevice::read <boolean>(byte objectIndex, boolean& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <unsigned char>(byte objectIndex, unsigned char& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <char>(byte objectIndex, char& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <unsigned int>(byte objectIndex, unsigned int& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <int>(byte objectIndex, int& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <unsigned long>(byte objectIndex, unsigned long& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <long>(byte objectIndex, long& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <float>(byte objectIndex, float& returnedValue);
-template e_KnxDeviceStatus KnxDevice::read <double>(byte objectIndex, double& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <bool>(uint8_t objectIndex, bool& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <unsigned char>(uint8_t objectIndex, unsigned char& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <char>(uint8_t objectIndex, char& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <unsigned int>(uint8_t objectIndex, unsigned int& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <int>(uint8_t objectIndex, int& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <unsigned long>(uint8_t objectIndex, unsigned long& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <long>(uint8_t objectIndex, long& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <float>(uint8_t objectIndex, float& returnedValue);
+template e_KnxDeviceStatus KnxDevice::read <double>(uint8_t objectIndex, double& returnedValue);
 
 
 
 // Read any type of com object (DPT value provided as is)
-e_KnxDeviceStatus KnxDevice::read(byte objectIndex, byte returnedValue[])
+e_KnxDeviceStatus KnxDevice::read(uint8_t objectIndex, uint8_t returnedValue[])
 {
   _comObjectsList[objectIndex].GetValue(returnedValue);
   return KNX_DEVICE_OK;
@@ -258,17 +261,17 @@ e_KnxDeviceStatus KnxDevice::read(byte objectIndex, byte returnedValue[])
 // Supported DPT types are short com object, U16, V16, U32, V32, F16 and F32
 // The Com Object value is updated locally
 // And a telegram is sent on the EIB bus if the com object has communication & transmit attributes
-template <typename T>  e_KnxDeviceStatus KnxDevice::write(byte objectIndex, T value)
+template <typename T>  e_KnxDeviceStatus KnxDevice::write(uint8_t objectIndex, T value)
 {
   type_tx_action action;
-  byte *destValue;
-  byte length = _comObjectsList[objectIndex].GetLength();
+  uint8_t *destValue;
+  uint8_t length = _comObjectsList[objectIndex].GetLength();
   
-  if (length <= 2 ) action.byteValue = (byte) value; // short object case
+  if (length <= 2 ) action.byteValue = (uint8_t) value; // short object case
   else
   { // long object case, let's try to translate value to the com object DPT
-    destValue = (byte *) malloc(length-1); // allocate the memory for DPT
-    e_KnxDeviceStatus status = ConvertToDpt(value, destValue, pgm_read_byte(&KnxDPTIdToFormat[_comObjectsList[objectIndex].GetDptId()]));
+    destValue = (uint8_t *) malloc(length-1); // allocate the memory for DPT
+    e_KnxDeviceStatus status = ConvertToDpt( value, destValue, KnxDPTIdToFormat[ _comObjectsList[objectIndex].GetDptId() ] );
     if (status) // translation error
     { 
       free(destValue);
@@ -283,33 +286,33 @@ template <typename T>  e_KnxDeviceStatus KnxDevice::write(byte objectIndex, T va
   return KNX_DEVICE_OK;
 }
 
-template e_KnxDeviceStatus KnxDevice::write <boolean>(byte objectIndex, boolean value);
-template e_KnxDeviceStatus KnxDevice::write <unsigned char>(byte objectIndex, unsigned char value);
-template e_KnxDeviceStatus KnxDevice::write <char>(byte objectIndex, char value);
-template e_KnxDeviceStatus KnxDevice::write <unsigned int>(byte objectIndex, unsigned int value);
-template e_KnxDeviceStatus KnxDevice::write <int>(byte objectIndex, int value);
-template e_KnxDeviceStatus KnxDevice::write <unsigned long>(byte objectIndex, unsigned long value);
-template e_KnxDeviceStatus KnxDevice::write <long>(byte objectIndex, long value);
-template e_KnxDeviceStatus KnxDevice::write <float>(byte objectIndex, float value);
-template e_KnxDeviceStatus KnxDevice::write <double>(byte objectIndex, double value);
+template e_KnxDeviceStatus KnxDevice::write <bool>(uint8_t objectIndex, bool value);
+template e_KnxDeviceStatus KnxDevice::write <unsigned char>(uint8_t objectIndex, unsigned char value);
+template e_KnxDeviceStatus KnxDevice::write <char>(uint8_t objectIndex, char value);
+template e_KnxDeviceStatus KnxDevice::write <unsigned int>(uint8_t objectIndex, unsigned int value);
+template e_KnxDeviceStatus KnxDevice::write <int>(uint8_t objectIndex, int value);
+template e_KnxDeviceStatus KnxDevice::write <unsigned long>(uint8_t objectIndex, unsigned long value);
+template e_KnxDeviceStatus KnxDevice::write <long>(uint8_t objectIndex, long value);
+template e_KnxDeviceStatus KnxDevice::write <float>(uint8_t objectIndex, float value);
+template e_KnxDeviceStatus KnxDevice::write <double>(uint8_t objectIndex, double value);
 
 
 // Update any type of com object (rough DPT value shall be provided)
 // The Com Object value is updated locally
 // And a telegram is sent on the EIB bus if the com object has communication & transmit attributes
-e_KnxDeviceStatus KnxDevice::write(byte objectIndex, byte valuePtr[])
+e_KnxDeviceStatus KnxDevice::write(uint8_t objectIndex, uint8_t valuePtr[])
 {
 type_tx_action action;
-byte *dptValue;
-byte length = _comObjectsList[objectIndex].GetLength();
+uint8_t *dptValue;
+uint8_t length = _comObjectsList[objectIndex].GetLength();
 
   if (length>2) // check we are in long object case
   { // add WRITE action in the TX action queue
     action.command = EIB_WRITE_REQUEST;
     action.index = objectIndex;
-    dptValue = (byte *) malloc(length-1); // allocate the memory for long value
-    for (byte i=0; i<length-1; i++) dptValue[i] = valuePtr[i]; // copy value
-    action.valuePtr = (byte *) dptValue;
+    dptValue = (uint8_t *) malloc(length-1); // allocate the memory for long value
+    for (uint8_t i=0; i<length-1; i++) dptValue[i] = valuePtr[i]; // copy value
+    action.valuePtr = (uint8_t *) dptValue;
     _txActionList.Append(action);
     return KNX_DEVICE_OK;
   }
@@ -320,7 +323,7 @@ byte length = _comObjectsList[objectIndex].GetLength();
 // Com Object EIB Bus Update request
 // Request the local object to be updated with the value from the bus
 // NB : the function is asynchroneous, the update completion is notified by the knxEvents() callback
-void KnxDevice::update(byte objectIndex)
+void KnxDevice::update(uint8_t objectIndex)
 {
 type_tx_action action;
   action.command = EIB_READ_REQUEST;
@@ -330,7 +333,7 @@ type_tx_action action;
 
 
 // The function returns true if there is rx/tx activity ongoing, else false
-boolean KnxDevice::isActive(void) const
+bool KnxDevice::isActive(void) const
 {
   if (_tpuart->IsActive()) return true; // TPUART is active
   if (_state == TX_ONGOING) return true; // the Device is sending a request
@@ -343,7 +346,7 @@ boolean KnxDevice::isActive(void) const
 void KnxDevice::GetTpUartEvents(e_KnxTpUartEvent event)
 {
 type_tx_action action;
-byte targetedComObjIndex; // index of the Com Object targeted by the event
+uint8_t targetedComObjIndex; // index of the Com Object targeted by the event
 
   // Manage RECEIVED MESSAGES
   if (event == TPUART_EVENT_RECEIVED_EIB_TELEGRAM)
@@ -432,7 +435,7 @@ void KnxDevice::TxTelegramAck(e_TpUartTxAck value)
 
 // Functions to convert a standard C type to a DPT format
 // NB : only the usual DPT formats are supported (U16, V16, U32, V32, F16 and F32 (not yet implemented)
-template <typename T> e_KnxDeviceStatus ConvertFromDpt(const byte dptOriginValue[], T& resultValue, byte dptFormat)
+template <typename T> e_KnxDeviceStatus ConvertFromDpt(const uint8_t dptOriginValue[], T& resultValue, uint8_t dptFormat)
 {
   switch (dptFormat)
   {
@@ -456,13 +459,13 @@ template <typename T> e_KnxDeviceStatus ConvertFromDpt(const byte dptOriginValue
     {
       // Get the DPT sign, mantissa and exponent
       int signMultiplier = (dptOriginValue[0] & 0x80) ? -1 : 1;
-      word absoluteMantissa = dptOriginValue[1] + ((dptOriginValue[0]&0x07)<<8);
+      uint16_t absoluteMantissa = dptOriginValue[1] + ((dptOriginValue[0]&0x07)<<8);
       if (signMultiplier == -1) 
       { // Calculate absolute mantissa value in case of negative mantissa
         // Abs = 2's complement + 1
         absoluteMantissa = ((~absoluteMantissa)& 0x07FF ) + 1;
       }
-      byte exponent = (dptOriginValue[0]&0x78)>>3;
+      uint8_t exponent = (dptOriginValue[0]&0x78)>>3;
       resultValue = (T)(0.01 * ((long)absoluteMantissa << exponent) * signMultiplier);
       return KNX_DEVICE_OK;
     }
@@ -478,63 +481,63 @@ template <typename T> e_KnxDeviceStatus ConvertFromDpt(const byte dptOriginValue
   }
 }
 
-template e_KnxDeviceStatus ConvertFromDpt <unsigned char>(const byte dptOriginValue[], unsigned char&, byte dptFormat);
-template e_KnxDeviceStatus ConvertFromDpt <char>(const byte dptOriginValue[], char&, byte dptFormat);
-template e_KnxDeviceStatus ConvertFromDpt <unsigned int>(const byte dptOriginValue[], unsigned int&, byte dptFormat);
-template e_KnxDeviceStatus ConvertFromDpt <int>(const byte dptOriginValue[], int&, byte dptFormat);
-template e_KnxDeviceStatus ConvertFromDpt <unsigned long>(const byte dptOriginValue[], unsigned long&, byte dptFormat);
-template e_KnxDeviceStatus ConvertFromDpt <long>(const byte dptOriginValue[], long&, byte dptFormat);
-template e_KnxDeviceStatus ConvertFromDpt <float>(const byte dptOriginValue[], float&, byte dptFormat);
-template e_KnxDeviceStatus ConvertFromDpt <double>(const byte dptOriginValue[], double&, byte dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <unsigned char>(const uint8_t dptOriginValue[], unsigned char&, uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <char>(const uint8_t dptOriginValue[], char&, uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <unsigned int>(const uint8_t dptOriginValue[], unsigned int&, uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <int>(const uint8_t dptOriginValue[], int&, uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <unsigned long>(const uint8_t dptOriginValue[], unsigned long&, uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <long>(const uint8_t dptOriginValue[], long&, uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <float>(const uint8_t dptOriginValue[], float&, uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertFromDpt <double>(const uint8_t dptOriginValue[], double&, uint8_t dptFormat);
 
 
 // Functions to convert a standard C type to a DPT format
 // NB : only the usual DPT formats are supported (U16, V16, U32, V32, F16 and F32 (not yet implemented)
-template <typename T> e_KnxDeviceStatus ConvertToDpt(T originValue, byte dptDestValue[], byte dptFormat)
+template <typename T> e_KnxDeviceStatus ConvertToDpt(T originValue, uint8_t dptDestValue[], uint8_t dptFormat)
 {
   switch (dptFormat)
   {
     case KNX_DPT_FORMAT_U16:
     case KNX_DPT_FORMAT_V16:
-      dptDestValue[0] = (byte)((unsigned int)originValue>>8);
-      dptDestValue[1] = (byte)(originValue);
+      dptDestValue[0] = (uint8_t)((unsigned int)originValue>>8);
+      dptDestValue[1] = (uint8_t)(originValue);
       return KNX_DEVICE_OK;
     break;
 
     case KNX_DPT_FORMAT_U32:
     case KNX_DPT_FORMAT_V32:
-      dptDestValue[0] = (byte)((unsigned long)originValue>>24);
-      dptDestValue[1] = (byte)((unsigned long)originValue>>16);
-      dptDestValue[2] = (byte)((unsigned long)originValue>>8);
-      dptDestValue[3] = (byte)(originValue);
+      dptDestValue[0] = (uint8_t)((unsigned long)originValue>>24);
+      dptDestValue[1] = (uint8_t)((unsigned long)originValue>>16);
+      dptDestValue[2] = (uint8_t)((unsigned long)originValue>>8);
+      dptDestValue[3] = (uint8_t)(originValue);
       return KNX_DEVICE_OK;
     break;
 
     case KNX_DPT_FORMAT_F16 :
     {
       long longValuex100 = (long)(100.0 * originValue);
-      boolean negativeSign = (longValuex100 & 0x80000000)? true : false;
-      byte exponent = 0;
-      byte round = 0;
+      bool negativeSign = (longValuex100 & 0x80000000)? true : false;
+      uint8_t exponent = 0;
+      uint8_t round = 0;
 
       if (negativeSign)
       {
         while(longValuex100 < (long)(-2048)) 
         {
-           exponent++; round = (byte)(longValuex100) & 1 ; longValuex100>>=1; longValuex100|=0x80000000;
+           exponent++; round = (uint8_t)(longValuex100) & 1 ; longValuex100>>=1; longValuex100|=0x80000000;
         }
       }
       else
       {
         while(longValuex100 > (long)(2047)) 
         {
-          exponent++; round = (byte)(longValuex100) & 1 ; longValuex100>>=1;
+          exponent++; round = (uint8_t)(longValuex100) & 1 ; longValuex100>>=1;
         }
 
       }
       if (round) longValuex100++;
-      dptDestValue[1] = (byte)longValuex100;
-      dptDestValue[0] = (byte)(longValuex100>>8) & 0x7 ;
+      dptDestValue[1] = (uint8_t)longValuex100;
+      dptDestValue[0] = (uint8_t)(longValuex100>>8) & 0x7 ;
       dptDestValue[0] += exponent<<3;
       if (negativeSign) dptDestValue[0] += 0x80;
       return KNX_DEVICE_OK;
@@ -551,14 +554,14 @@ template <typename T> e_KnxDeviceStatus ConvertToDpt(T originValue, byte dptDest
   }
 }
 
-template e_KnxDeviceStatus ConvertToDpt <unsigned char>(unsigned char, byte dptDestValue[], byte dptFormat);
-template e_KnxDeviceStatus ConvertToDpt <char>(char, byte dptDestValue[], byte dptFormat);
-template e_KnxDeviceStatus ConvertToDpt <unsigned int>(unsigned int, byte dptDestValue[], byte dptFormat);
-template e_KnxDeviceStatus ConvertToDpt <int>(int, byte dptDestValue[], byte dptFormat);
-template e_KnxDeviceStatus ConvertToDpt <unsigned long>(unsigned long, byte dptDestValue[], byte dptFormat);
-template e_KnxDeviceStatus ConvertToDpt <long>(long, byte dptDestValue[], byte dptFormat);
-template e_KnxDeviceStatus ConvertToDpt <float>(float, byte dptDestValue[], byte dptFormat);
-template e_KnxDeviceStatus ConvertToDpt <double>(double, byte dptDestValue[], byte dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <unsigned char>(unsigned char, uint8_t dptDestValue[], uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <char>(char, uint8_t dptDestValue[], uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <unsigned int>(unsigned int, uint8_t dptDestValue[], uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <int>(int, uint8_t dptDestValue[], uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <unsigned long>(unsigned long, uint8_t dptDestValue[], uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <long>(long, uint8_t dptDestValue[], uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <float>(float, uint8_t dptDestValue[], uint8_t dptFormat);
+template e_KnxDeviceStatus ConvertToDpt <double>(double, uint8_t dptDestValue[], uint8_t dptFormat);
 
 // EOF
 
