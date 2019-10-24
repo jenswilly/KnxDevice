@@ -4,7 +4,7 @@ This repo is a fork of [franckmarini/KnxDevice](https://github.com/franckmarini/
 
 --- 
 
-_Original readme.me:_
+_Original readme.md:_
 
 ## Links :
 - [Blog](http://www.liwan.fr/KnxWithArduino/)
