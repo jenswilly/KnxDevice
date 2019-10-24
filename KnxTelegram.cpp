@@ -168,7 +168,7 @@ void KnxTelegram::InfoVerbose( std::string& str ) const
 		case KNX_PRIORITY_ALARM_VALUE : stream << "ALARM"; break;
 		case KNX_PRIORITY_HIGH_VALUE : stream << "HIGH"; break;
 		case KNX_PRIORITY_NORMAL_VALUE : stream << "NORMAL"; break;
-		default : s$tream << "ERR_VAL!"; break;
+		default: stream << "ERR_VAL!"; break;
 	}
 	stream << "\nSrcAddr=" << std::hex << GetSourceAddress();
 	stream << "\nTargetAddr=" << std::hex << GetTargetAddress();

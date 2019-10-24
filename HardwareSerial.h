@@ -19,44 +19,19 @@ class HardwareSerial
 {
 public:
 	HardwareSerial();
+	~HardwareSerial();
 
-	inline int available()
-	{
-		return 0;
-	}
+	virtual int available() { return 0; }
+    virtual int peek() { return 0; }
+	virtual uint8_t read() { return 0; }
 
-	inline uint8_t read()
-	{
-		return 0;
-	}
+    virtual void begin( unsigned long baud, e_SerialMode mode ) {}
+	virtual void end() {}
 
-	inline void end() {}
+    virtual int write( uint8_t data ) { return 1; };
+    virtual void flush() {}
 
-    inline int peek()
-    {
-    	return 0;
-    }
-
-    inline void flush() {}
-
-    inline int write( uint8_t data )
-    {
-    	return 1;
-    }
-    inline int write( unsigned long n ) { return write( (uint8_t)n ); }
-    inline int write( long n ) { return write( (uint8_t)n ); }
-    inline int write( unsigned int n ) { return write( (uint8_t)n ); }
-    inline int write( int n ) { return write( (uint8_t)n ); }
-
-    inline int write( uint8_t *buffer, int size )
-    {
-    	while( size )
-    		write( buffer[size--] );
-
-    	return size;
-    }
-
-    inline void begin( unsigned long baud, e_SerialMode mode ) {}
+    int write( uint8_t *buffer, int size );
 };
 
 #endif /* KNXDEVICE_HARDWARESERIAL_H_ */

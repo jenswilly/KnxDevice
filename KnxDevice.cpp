@@ -41,7 +41,7 @@ KnxDevice& Knx = KnxDevice::Knx;
 // Constructor
 KnxDevice::KnxDevice()
 {
-  _state = INIT;
+  _state = DEVICE_STATE_INIT;
   _tpuart = NULL;
   _txActionList= ActionRingBuffer<type_tx_action, ACTIONS_QUEUE_SIZE>();
   _initCompleted = false;
@@ -77,7 +77,7 @@ e_KnxDeviceStatus KnxDevice::begin( HardwareSerial& serial, uint16_t physicalAdd
   _tpuart->SetEvtCallback(&KnxDevice::GetTpUartEvents);
   _tpuart->SetAckCallback(&KnxDevice::TxTelegramAck);
   _tpuart->Init();
-  _state = IDLE;
+  _state = DEVICE_STATE_IDLE;
 #if defined(KNXDEVICE_DEBUG_INFO)
   DebugInfo("Init successful\n");
 #endif
@@ -95,7 +95,7 @@ void KnxDevice::end()
 {
 type_tx_action action;
 
-  _state = INIT;
+  _state = DEVICE_STATE_INIT;
   while(_txActionList.Pop(action)); // empty ring buffer
   _initCompleted = false;
   _initIndex = 0;
@@ -150,7 +150,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
   }
 
   // STEP 3 : Send KNX messages following TX actions
-  if(_state == IDLE)
+  if(_state == DEVICE_STATE_IDLE)
   {
     if( _txActionList.Pop(action))
     { // Data to be transmitted
@@ -163,7 +163,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
           _txTelegram.SetCommand(KNX_COMMAND_VALUE_READ);
           _txTelegram.UpdateChecksum();
           _tpuart->SendTelegram(_txTelegram);
-          _state = TX_ONGOING;
+          _state = DEVICE_STATE_TX_ONGOING;
           break;
 
         case EIB_RESPONSE_REQUEST: // a response operation of a Com Object on the EIB network is required
@@ -172,7 +172,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
           _txTelegram.SetCommand(KNX_COMMAND_VALUE_RESPONSE);
           _txTelegram.UpdateChecksum();
           _tpuart->SendTelegram(_txTelegram);
-          _state = TX_ONGOING;
+          _state = DEVICE_STATE_TX_ONGOING;
           break;
 
         case EIB_WRITE_REQUEST: // a write operation of a Com Object on the EIB network is required
@@ -192,7 +192,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
             _txTelegram.SetCommand(KNX_COMMAND_VALUE_WRITE);
             _txTelegram.UpdateChecksum();
             _tpuart->SendTelegram(_txTelegram);
-            _state = TX_ONGOING;
+            _state = DEVICE_STATE_TX_ONGOING;
           }
           break;
 
@@ -337,7 +337,7 @@ type_tx_action action;
 bool KnxDevice::isActive(void) const
 {
   if (_tpuart->IsActive()) return true; // TPUART is active
-  if (_state == TX_ONGOING) return true; // the Device is sending a request
+  if (_state == DEVICE_STATE_TX_ONGOING) return true; // the Device is sending a request
   if(_txActionList.ElementsNb()) return true; // there is at least one tx action in the queue
   return false;
 }
@@ -352,7 +352,7 @@ uint8_t targetedComObjIndex; // index of the Com Object targeted by the event
   // Manage RECEIVED MESSAGES
   if (event == TPUART_EVENT_RECEIVED_EIB_TELEGRAM)
   {
-    Knx._state = IDLE;
+    Knx._state = DEVICE_STATE_IDLE;
     targetedComObjIndex = Knx._tpuart->GetTargetedComObjectIndex();
 
     switch(Knx._rxTelegram->GetCommand())
@@ -411,7 +411,7 @@ uint8_t targetedComObjIndex; // index of the Com Object targeted by the event
   {
     while(Knx._tpuart->Reset()==KNX_TPUART_ERROR);
     Knx._tpuart->Init();
-    Knx._state = IDLE;
+    Knx._state = DEVICE_STATE_IDLE;
   }
 }
 
@@ -419,7 +419,7 @@ uint8_t targetedComObjIndex; // index of the Com Object targeted by the event
 // Static TxTelegramAck() function called by the KnxTpUart layer (callback)
 void KnxDevice::TxTelegramAck(e_TpUartTxAck value)
 {
-  Knx._state = IDLE;
+  Knx._state = DEVICE_STATE_IDLE;
 #ifdef KNXDevice_DEBUG
   if(value != ACK_RESPONSE)
   {

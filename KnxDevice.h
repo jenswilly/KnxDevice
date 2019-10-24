@@ -58,9 +58,9 @@ inline uint16_t G_ADDR(uint8_t maingrp, uint8_t subgrp)
 
 // KnxDevice internal state
 enum e_KnxDeviceState {
-  INIT,
-  IDLE,
-  TX_ONGOING,
+  DEVICE_STATE_INIT,
+  DEVICE_STATE_IDLE,
+  DEVICE_STATE_TX_ONGOING,
 };
 
 // Action types
