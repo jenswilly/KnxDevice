@@ -22,10 +22,13 @@
 // Description : Implementation of a generic elements ring buffer
 // Module dependencies : none
 
+// Modified:
+// 2019-10, JWJ
+
 #ifndef ACTIONRINGBUFFER_H
 #define ACTIONRINGBUFFER_H
 
-#include "Arduino.h"
+#include "lpc_types.h"
 
 // !!!!!!!!!!!!!!! FLAG OPTIONS !!!!!!!!!!!!!!!!!
 // #define ACTIONRINGBUFFER_STAT // To be uncommented when doing Statistics
@@ -34,16 +37,16 @@
 // The type of the contained elements and the ring buffer size are defined at compile time (template)
 // In case of buffer full, a new appended data overwrites the oldest one
 
-template<typename T, word size>
+template<typename T, uint16_t size>
 class ActionRingBuffer {
-     byte _head;
-     byte _tail;
-     T _buffer[size]; // elements buffer
-     byte _size;
-     byte _elementsCurrentNb;
+     uint8_t _head;
+     uint8_t _tail;
+     T _buffer[ size ]; // elements buffer
+     uint8_t _size;
+     uint8_t _elementsCurrentNb;
 #ifdef ACTIONRINGBUFFER_STAT
-     byte _elementsMaxNb;
-     word _lostElementsNb;
+     uint8_t _elementsMaxNb;
+     uint16_t _lostElementsNb;
 #endif
 
   public : 
@@ -87,7 +90,7 @@ class ActionRingBuffer {
 
     // Pop a data from the buffer. Pop() increments the "head"
     // Return TRUE when a data is available, otherwise FALSE
-    boolean Pop(T& popData)
+    bool Pop(T& popData)
     {
       if (!_elementsCurrentNb) return false; // no data in the buffer
       popData = _buffer[_head];

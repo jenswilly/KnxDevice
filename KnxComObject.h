@@ -22,6 +22,9 @@
 // Description : Handling of the KNX Communication Objects
 // Module dependencies : KnxTelegram
 
+// Modified:
+// 2019-10, JWJ
+
 #ifndef KNXCOMOBJECT_H
 #define KNXCOMOBJECT_H
 
@@ -60,15 +63,15 @@
 
 
 class KnxComObject {
-	const word _addr; // Group Address value
+	const uint16_t _addr; // Group Address value
 
-	const byte _dptId; // Datapoint type
+	const uint8_t _dptId; // Datapoint type
 
-	const byte _indicator; // C/R/W/T/U/I indicators
+	const uint8_t _indicator; // C/R/W/T/U/I indicators
 
 	// Com object data length is calculated in the same way as telegram payload length
 	// (See "knx.org" telegram specification for more details)
-	const byte _length;
+	const uint8_t _length;
 
 #ifdef KNX_COM_OBJ_SUPPORT_ALL_PRIORITIES
 	const e_KnxPriority _prio; // priority
@@ -77,48 +80,48 @@ class KnxComObject {
 	// _validity is used for "InitRead" typed com objs :
 	// it remains "false" till the object value is updated
 	// NB : the objects not typed "InitRead" get "true" validity value
-	boolean _validity;
+	bool _validity;
 
 	union {
 		// field used in case of short value (1 byte max width, i.e. length <= 2)
 		struct{
-			byte _value;
-			byte _notUSed;
+			uint8_t _value;
+			uint8_t _notUSed;
 		};
 		// field used in case of long value (2 bytes width or more, i.e. length > 2)
 		// The data space is allocated dynamically by the constructor
-		byte *_longValue;
+		uint8_t *_longValue;
 	};
 	
 public:
   // Constructor :
 #ifdef KNX_COM_OBJ_SUPPORT_ALL_PRIORITIES	
-	KnxComObject(word addr, e_KnxDPT_ID dptId, e_KnxPriority prio, byte indicator );
+	KnxComObject(uint16_t addr, e_KnxDPT_ID dptId, e_KnxPriority prio, uint8_t indicator );
 #else
-	KnxComObject(word addr, e_KnxDPT_ID dptId, byte indicator );
+	KnxComObject(uint16_t addr, e_KnxDPT_ID dptId, uint8_t indicator );
 #endif
   // Destructor
 	~KnxComObject();
 
   // INLINED functions (see definitions later in this file)
-	word GetAddr(void) const;
+	uint16_t GetAddr(void) const;
 
-	byte GetDptId(void) const;
+	uint8_t GetDptId(void) const;
 
 	e_KnxPriority GetPriority(void) const;
 
-	byte GetIndicator(void) const;
+	uint8_t GetIndicator(void) const;
 
-	boolean GetValidity(void) const;
+	bool GetValidity(void) const;
 
-	byte GetLength(void) const;
+	uint8_t GetLength(void) const;
 
 	// Return the com obj value (short value case only)
-	byte GetValue(void) const;
+	uint8_t GetValue(void) const;
 
 	// Update the com obj value (short value case only)
 	// Return ERROR if the com obj is long value (invalid use case), else return OK
-	byte UpdateValue(byte newVal);
+	uint8_t UpdateValue(uint8_t newVal);
 
 	// Toggle the binary value (for com objs with "B1" format)
 	// NB : the function does not change the validity.
@@ -127,14 +130,14 @@ public:
   // functions NOT INLINED :
 
 	// Get the com obj value (short and long value cases)
-	void GetValue(byte dest[]) const;
+	void GetValue(uint8_t dest[]) const;
 
 	// Update the com obj value (short and long value cases)
-	void UpdateValue(const byte ori[]);
+	void UpdateValue(const uint8_t ori[]);
 
 	// Update the com obj value with a telegram payload content
 	// Return ERROR if the telegram payload length differs from com obj one, else return OK
-	byte UpdateValue(const KnxTelegram& ori);
+	uint8_t UpdateValue(const KnxTelegram& ori);
 
 	// Copy the com obj attributes (addr, prio, length) into a telegram object
 	void CopyAttributes(KnxTelegram& dest) const;
@@ -148,9 +151,9 @@ public:
 
 
 // --------------- Definition of the INLINED functions -----------------
-inline word KnxComObject::GetAddr(void) const { return _addr; }
+inline uint16_t KnxComObject::GetAddr(void) const { return _addr; }
 
-inline byte KnxComObject::GetDptId(void) const { return _dptId; }
+inline uint8_t KnxComObject::GetDptId(void) const { return _dptId; }
 
 #ifdef KNX_COM_OBJ_SUPPORT_ALL_PRIORITIES	
 inline e_KnxPriority KnxComObject::GetPriority(void) const { return _prio; }
@@ -158,15 +161,15 @@ inline e_KnxPriority KnxComObject::GetPriority(void) const { return _prio; }
 inline e_KnxPriority KnxComObject::GetPriority(void) const { return KNX_PRIORITY_NORMAL_VALUE; }
 #endif
 
-inline byte KnxComObject::GetIndicator(void) const { return _indicator; }
+inline uint8_t KnxComObject::GetIndicator(void) const { return _indicator; }
 
-inline boolean KnxComObject::GetValidity(void) const { return _validity; }
+inline bool KnxComObject::GetValidity(void) const { return _validity; }
 
-inline byte KnxComObject::GetLength(void) const { return _length; }
+inline uint8_t KnxComObject::GetLength(void) const { return _length; }
 
-inline byte KnxComObject::GetValue(void) const { return _value; } 
+inline uint8_t KnxComObject::GetValue(void) const { return _value; }
 
-inline byte KnxComObject::UpdateValue(byte newValue)
+inline uint8_t KnxComObject::UpdateValue(uint8_t newValue)
 { if (_length > 2) return KNX_COM_OBJECT_ERROR; _value = newValue; _validity = true; return KNX_COM_OBJECT_OK; }
 
 inline void KnxComObject::ToggleValue(void) { _value =  !_value; }
