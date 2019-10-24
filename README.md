@@ -1,4 +1,10 @@
-# KNX Bus Device library for Arduino
+# KNX Bus Device library for LPCXpresso/LPCOpen
+
+This repo is a fork of [franckmarini/KnxDevice](https://github.com/franckmarini/KnxDevice) which has been converted from Arduino to NXP's LPC MCU's using LPCXpresso and LPCOpen.
+
+--- 
+
+_Original readme.me:_
 
 ## Links :
 - [Blog](http://www.liwan.fr/KnxWithArduino/)
