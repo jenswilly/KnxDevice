@@ -22,27 +22,31 @@
 // Description : Handling of the KNX Communication Objects
 // Module dependencies : KnxTelegram
 
+// Modified:
+// 2019-10, JWJ
+
 #include "KnxComObject.h"
 
 // Data length is calculated in the same way as telegram payload length
-byte lengthCalculation(e_KnxDPT_ID dptId) {
-	return (pgm_read_byte(&KnxDPTFormatToLengthBit[ pgm_read_byte(&KnxDPTIdToFormat[dptId])] ) / 8) + 1;
+uint8_t lengthCalculation( e_KnxDPT_ID dptId )
+{
+	return (KnxDPTFormatToLengthBit[ KnxDPTIdToFormat[ dptId ]] / 8) + 1;
 }
 
 
 // Contructor
 #ifdef KNX_COM_OBJ_SUPPORT_ALL_PRIORITIES
-KnxComObject::KnxComObject(word addr, e_KnxDPT_ID dptId, e_KnxPriority prio, byte indicator )
+KnxComObject::KnxComObject(uint16_t addr, e_KnxDPT_ID dptId, e_KnxPriority prio, uint8_t indicator )
 : _addr(addr), _dptId(dptId), _indicator(indicator), _length(lengthCalculation(dptId)), _prio(prio)
 #else
-KnxComObject::KnxComObject(word addr, e_KnxDPT_ID dptId, byte indicator )
+KnxComObject::KnxComObject(uint16_t addr, e_KnxDPT_ID dptId, uint8_t indicator )
 : _addr(addr), _dptId(dptId), _indicator(indicator), _length(lengthCalculation(dptId))
 #endif
 {
 	if (_length <= 2) _longValue = NULL; // short value case
 	else { // long value case
-		_longValue = (byte *) malloc(_length-1);
-		for (byte i=0; i <_length-1 ; i++) _longValue[i] = 0;
+		_longValue = (uint8_t *) malloc(_length-1);
+		for (uint8_t i=0; i <_length-1 ; i++) _longValue[i] = 0;
 	}  
 	if (_indicator & KNX_COM_OBJ_I_INDICATOR) _validity = false; // case of object with "InitRead" indicator
 	else _validity = true; // case of object without "InitRead" indicator
@@ -55,24 +59,24 @@ KnxComObject::~KnxComObject() { if (_length > 2) free(_longValue); }
 
 
 // Get the com obj value (short and long value cases)
-void KnxComObject::GetValue(byte dest[]) const
+void KnxComObject::GetValue(uint8_t dest[]) const
 {
 	if (_length <=2) dest[0] = _value; // short value case, ReadValue(void) fct should rather be used
-	else for (byte i=0; i < _length-1 ; i++) dest[i] = _longValue[i]; // long value case
+	else for (uint8_t i=0; i < _length-1 ; i++) dest[i] = _longValue[i]; // long value case
 }
 
 
 // Update the com obj value (short and long value cases)
-void KnxComObject::UpdateValue(const byte ori[])
+void KnxComObject::UpdateValue(const uint8_t ori[])
 {
-	if (_length <=2) _value = ori[0]; // short value case, UpdateValue(byte) fct should rather be used
-	else for (byte i=0; i < _length-1 ; i++) _longValue[i] = ori[i]; // long value case
+	if (_length <=2) _value = ori[0]; // short value case, UpdateValue(uint8_t) fct should rather be used
+	else for (uint8_t i=0; i < _length-1 ; i++) _longValue[i] = ori[i]; // long value case
 	_validity = true;  // com obj set to valid
 }
 
 
 // Update the com obj value with the telegram payload content
-byte KnxComObject::UpdateValue(const KnxTelegram& ori)
+uint8_t KnxComObject::UpdateValue(const KnxTelegram& ori)
 {
 	if (ori.GetPayloadLength() != GetLength()) return KNX_COM_OBJECT_ERROR; // Error : telegram payload length differs from com obj one
 	if (_length == 1) _value = ori.GetFirstPayloadByte();
@@ -104,7 +108,7 @@ void KnxComObject::CopyValue(KnxTelegram& dest) const
 // DEBUG function
 void KnxComObject::Info(String& str) const
 {
-byte length = GetLength();
+	uint8_t length = GetLength();
 	str+="Addr=" + String(GetAddr(),HEX);
 	str+="\nDPTId=" + String(GetDptId(),HEX);
 	str+="\nIndicator=" + String(GetIndicator(),HEX);
@@ -126,9 +130,9 @@ byte length = GetLength();
 	else 
         {
 		str+="\nLongValue=";
-		byte *longValue = (byte *) malloc(length- 1);
+		uint8_t *longValue = (uint8_t *) malloc(length- 1);
                 GetValue(longValue);
-		for (byte i = 0; i < length-1; i++) str+=String(longValue[i], HEX)+' ';
+		for (uint8_t i = 0; i < length-1; i++) str+=String(longValue[i], HEX)+' ';
 	}
 }
 

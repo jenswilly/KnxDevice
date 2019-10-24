@@ -21,10 +21,13 @@
 // Author : Franck Marini
 // Description : Definition of the KNX Datapoints types as per "knx.org" specification
 
+// Modified:
+// 2019-10, JWJ
+
 #ifndef KNXDPT_H
 #define KNXDPT_H
 
-#include <avr/pgmspace.h> // DPT arrays are stored in flash using PROG MEMORY
+#include "lpc_types.h"
 
 // List of the DPT formats
 // A Character
@@ -106,7 +109,7 @@ enum eKnxDPT_Format {
 
 // Definition of the length in bits according to the format
 // NB : table is stored in flash program memory to save RAM
-const byte KnxDPTFormatToLengthBit[] PROGMEM = {
+const uint8_t KnxDPTFormatToLengthBit[] = {
   1 , //  KNX_DPT_FORMAT_B1 = 0,
   2 , //  KNX_DPT_FORMAT_B2,
   4 , // KNX_DPT_FORMAT_B1U3
@@ -282,7 +285,7 @@ enum e_KnxDPT_ID {
 
 // Definition of the format according to the ID
 // NB : table is stored in flash program memory to save RAM
-const byte KnxDPTIdToFormat[] PROGMEM = {
+const uint8_t KnxDPTIdToFormat[] = {
   KNX_DPT_FORMAT_B1, //  KNX_DPT_1_001, // 1.001 B1 DPT_Switch
   KNX_DPT_FORMAT_B1, //  KNX_DPT_1_002, // 1.002 B1 DPT_Bool
   KNX_DPT_FORMAT_B1, //  KNX_DPT_1_003, // 1.003 B1 DPT_Enable
