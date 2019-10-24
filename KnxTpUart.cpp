@@ -22,9 +22,12 @@
 // Description : Communication with TPUART
 // Module dependencies : HardwareSerial, KnxTelegram, KnxComObject
 
+// Modified:
+// 2019-10, JWJ
+
 #include "KnxTpUart.h"
 
-static inline word TimeDeltaWord(word now, word before) { return (word)(now - before); }
+static inline uint16_t TimeDeltaWord(uint16_t now, uint16_t before) { return (uint16_t)(now - before); }
 
 #ifdef KNXTPUART_DEBUG_INFO
 const char KnxTpUart::_debugInfoText[] = "KNXTPUART INFO: ";
@@ -36,7 +39,7 @@ const char KnxTpUart::_debugErrorText[] = "KNXTPUART ERROR: ";
 
 
 // Constructor
-KnxTpUart::KnxTpUart(HardwareSerial& serial, word physicalAddr, type_KnxTpUartMode mode)
+KnxTpUart::KnxTpUart(HardwareSerial& serial, uint16_t physicalAddr, type_KnxTpUartMode mode)
 : _serial(serial), _physicalAddr(physicalAddr), _mode(mode)
 {
   _rx.state = RX_RESET;
@@ -78,10 +81,10 @@ KnxTpUart::~KnxTpUart()
 
 // Reset the Arduino UART port and the TPUART device
 // Return KNX_TPUART_ERROR in case of TPUART Reset failure
-byte KnxTpUart::Reset(void)
+uint8_t KnxTpUart::Reset(void)
 {
-word startTime, nowTime;
-byte attempts = 10;
+	uint16_t startTime, nowTime;
+	uint8_t attempts = 10;
 
   if ( (_rx.state > RX_RESET) || (_tx.state > TX_RESET) ) 
   { // HOT RESET case
@@ -99,7 +102,7 @@ byte attempts = 10;
     // the sequence is repeated every sec as long as we do not get the reset indication 
     _serial.write(TPUART_RESET_REQ); // send RESET REQUEST
 
-    for (nowTime = startTime = (word) millis() ; TimeDeltaWord(nowTime,startTime) < 1000 /* 1 sec */ ; nowTime = (word)millis())
+    for (nowTime = startTime = (uint16_t) millis() ; TimeDeltaWord(nowTime,startTime) < 1000 /* 1 sec */ ; nowTime = (uint16_t)millis())
     {
       if (_serial.available() > 0) 
       {
@@ -127,7 +130,7 @@ byte attempts = 10;
 // NB2 : In case of objects with identical address, the object with highest index only is considered
 // return KNX_TPUART_ERROR_NOT_INIT_STATE (254) if the TPUART is not in Init state
 // The function must be called prior to Init() execution
-byte KnxTpUart::AttachComObjectsList(KnxComObject comObjectsList[], byte listSize)
+uint8_t KnxTpUart::AttachComObjectsList(KnxComObject comObjectsList[], uint8_t listSize)
 {
 #define IS_COM(index) (comObjectsList[index].GetIndicator() & KNX_COM_OBJ_C_INDICATOR)
 #define ADDR(index) (comObjectsList[index].GetAddr())
@@ -149,7 +152,7 @@ byte KnxTpUart::AttachComObjectsList(KnxComObject comObjectsList[], byte listSiz
     return  KNX_TPUART_OK;
   }
   // Count all the com objects with communication indicator
-  for (byte i=0; i < listSize ; i++) if (IS_COM(i)) _assignedComObjectsNb++;
+  for (uint8_t i=0; i < listSize ; i++) if (IS_COM(i)) _assignedComObjectsNb++;
   if (!_assignedComObjectsNb)
   {
 #if defined(KNXTPUART_DEBUG_INFO)
@@ -158,10 +161,10 @@ byte KnxTpUart::AttachComObjectsList(KnxComObject comObjectsList[], byte listSiz
     return  KNX_TPUART_OK;    
   }
   // Deduct the duplicate addresses
-  for (byte i=0; i < listSize ; i++)
+  for (uint8_t i=0; i < listSize ; i++)
   {
     if (!IS_COM(i)) continue;
-    for (byte j=0; j < listSize ; j++)
+    for (uint8_t j=0; j < listSize ; j++)
     {
       if ( (i!=j) && (ADDR(j) == ADDR(i)) && (IS_COM(j)) )
       { // duplicate address found
@@ -178,12 +181,12 @@ byte KnxTpUart::AttachComObjectsList(KnxComObject comObjectsList[], byte listSiz
   }
   _comObjectsList = comObjectsList;
   // Creation of the ordered index table
-  _orderedIndexTable = (byte*) malloc(_assignedComObjectsNb);
-  word minMin = 0x0000;   // minimum min value searched  
-  word foundMin = 0xFFFF; // min value found so far
-  for (byte i=0; i < _assignedComObjectsNb; i++)
+  _orderedIndexTable = (uint8_t*) malloc(_assignedComObjectsNb);
+  uint16_t minMin = 0x0000;   // minimum min value searched
+  uint16_t foundMin = 0xFFFF; // min value found so far
+  for (uint8_t i=0; i < _assignedComObjectsNb; i++)
   {
-    for (byte j=0; j < listSize ; j++) 
+    for (uint8_t j=0; j < listSize ; j++)
     {
       if ( (IS_COM(j)) && (ADDR(j)>=minMin) && (ADDR(j)<=foundMin) )
       {
@@ -204,9 +207,9 @@ byte KnxTpUart::AttachComObjectsList(KnxComObject comObjectsList[], byte listSiz
 // Init
 // returns ERROR (255) if the TP-UART is not in INIT state, else returns OK (0)
 // Init must be called after every reset() execution
-byte KnxTpUart::Init(void)
+uint8_t KnxTpUart::Init(void)
 {
-  byte tpuartCmd[3];
+	uint8_t tpuartCmd[3];
 
   if ((_rx.state!=RX_INIT) || (_tx.state!=TX_INIT)) return KNX_TPUART_ERROR_NOT_INIT_STATE;
 
@@ -228,8 +231,8 @@ byte KnxTpUart::Init(void)
 
     // Set Physical address. This allows to activate address evaluation by the TPUART
     tpuartCmd[0] = TPUART_SET_ADDR_REQ;
-    tpuartCmd[1] = (byte)(_physicalAddr>>8);
-    tpuartCmd[2] = (byte)_physicalAddr;
+    tpuartCmd[1] = (uint8_t)(_physicalAddr>>8);
+    tpuartCmd[2] = (uint8_t)_physicalAddr;
     _serial.write(tpuartCmd,3);
   
     // Call U_State.request-Service in order to have the field _stateIndication up-to-date
@@ -248,7 +251,7 @@ byte KnxTpUart::Init(void)
 // Send a KNX telegram
 // returns ERROR (255) if TX is not available, or if the telegram is not valid, else returns OK (0)
 // NB : the source address is forced to TPUART physical address value
-byte KnxTpUart::SendTelegram(KnxTelegram& sentTelegram)
+uint8_t KnxTpUart::SendTelegram(KnxTelegram& sentTelegram)
 {
   if (_tx.state != TX_IDLE) return KNX_TPUART_ERROR; // TX not initialized or busy
   
@@ -273,17 +276,17 @@ byte KnxTpUart::SendTelegram(KnxTelegram& sentTelegram)
 // Typical calling period is 400 usec.
 void KnxTpUart::RXTask(void)
 {
-byte incomingByte;
-word nowTime;
-static byte readBytesNb; // Nb of read bytes during an EIB telegram reception
-static KnxTelegram telegram; // telegram being received
-static byte addressedComObjectIndex; // index of the com object targeted by the received telegram
-static word lastByteRxTimeMicrosec;
+	uint8_t incomingByte;
+	uint16_t nowTime;
+	static byte readBytesNb; // Nb of read bytes during an EIB telegram reception
+	static KnxTelegram telegram; // telegram being received
+	static uint8_t addressedComObjectIndex; // index of the com object targeted by the received telegram
+	static uint16_t lastByteRxTimeMicrosec;
 
 // === STEP 1 : Check EOP in case a Telegram is being received ===
   if (_rx.state >= RX_EIB_TELEGRAM_RECEPTION_STARTED)
   { // a telegram reception is ongoing
-    nowTime = (word) micros(); // word cast because a 65ms looping counter is long enough
+    nowTime = (uint16_t) micros(); // uint16_t cast because a 65ms looping counter is long enough
     if(TimeDeltaWord(nowTime,lastByteRxTimeMicrosec) > 2000 /* 2 ms */ )
     { // EOP detected, the telegram reception is completed
 
@@ -320,8 +323,8 @@ static word lastByteRxTimeMicrosec;
 // === STEP 2 : Get New RX Data ===
   if (_serial.available() > 0) 
   {
-    incomingByte = (byte)(_serial.read());
-    lastByteRxTimeMicrosec = (word)micros();
+    incomingByte = (uint8_t)(_serial.read());
+    lastByteRxTimeMicrosec = (uint16_t)micros();
 	
     switch (_rx.state)
     {
@@ -445,16 +448,16 @@ static word lastByteRxTimeMicrosec;
 // Typical calling period is 800 usec.
 void KnxTpUart::TXTask(void)
 {
-word nowTime;
-byte txByte[2];
-static word sentMessageTimeMillisec;
+	uint16_t nowTime;
+	uint8_t txByte[2];
+	static uint16_t sentMessageTimeMillisec;
 
   // STEP 1 : Manage Message Acknowledge timeout
   switch (_tx.state)
   {
   case TX_WAITING_ACK :
     // A transmission ACK is awaited, increment Acknowledge timeout
-    nowTime = (word) millis(); // word is enough to count up to 500
+    nowTime = (uint16_t) millis(); // uint16_t is enough to count up to 500
     if(TimeDeltaWord(nowTime,sentMessageTimeMillisec) > 500 /* 500 ms */ )
     { // The no-answer timeout value is defined as follows :
       // - The emission duration for a single max sized telegram is 40ms
@@ -482,7 +485,7 @@ static word sentMessageTimeMillisec;
           _serial.write(txByte,2); // write the UART control field and the data byte
 
           // Message sending completed
-          sentMessageTimeMillisec = (word)millis(); // memorize sending time in order to manage ACK timeout
+          sentMessageTimeMillisec = (uint16_t)millis(); // memorize sending time in order to manage ACK timeout
 	  _tx.state = TX_WAITING_ACK;
         }
         else
@@ -506,16 +509,16 @@ static word sentMessageTimeMillisec;
 // The function returns true if a new data has been retrieved (data pointer in argument), else false
 // It shall be called periodically (max period of 0,5ms) in order to allow correct data reception
 // Typical calling period is 400 usec.
-boolean KnxTpUart::GetMonitoringData(type_MonitorData& data)
+bool KnxTpUart::GetMonitoringData(type_MonitorData& data)
 {
-word nowTime;
-static type_MonitorData currentData={true,0};
-static word lastByteRxTimeMicrosec;
+	uint16_t nowTime;
+	static type_MonitorData currentData={true,0};
+	static uint16_t lastByteRxTimeMicrosec;
 
   // STEP 1 : Check EOP
   if (!(currentData.isEOP)) // check that we have not already detected an EOP
   {
-    nowTime = (word) micros(); // word cast because a 65ms counter is enough
+    nowTime = (uint16_t) micros(); // uint16_t cast because a 65ms counter is enough
     if(TimeDeltaWord(nowTime,lastByteRxTimeMicrosec) > 2000 /* 2 ms */ )
     {  // EOP detected
       currentData.isEOP = true;
@@ -527,10 +530,10 @@ static word lastByteRxTimeMicrosec;
   // STEP 2 : Get New RX Data
   if (_serial.available() > 0) 
   {
-    currentData.dataByte = (byte)(_serial.read());
+    currentData.dataByte = (uint8_t)(_serial.read());
     currentData.isEOP = false;
     data= currentData;
-    lastByteRxTimeMicrosec = (word) micros();
+    lastByteRxTimeMicrosec = (uint16_t) micros();
     return true;
   }
   return false; // No data received
@@ -540,10 +543,10 @@ static word lastByteRxTimeMicrosec;
 // Check if the target address is an assigned com object one
 // if yes, then update index parameter with the index (in the list) of the targeted com object and return true
 // else return false
-boolean KnxTpUart::IsAddressAssigned(word addr, byte &index) const
+bool KnxTpUart::IsAddressAssigned(uint16_t addr, uint8_t &index) const
 {
-byte divisionCounter=0;
-byte i, searchIndexStart, searchIndexStop, searchIndexRange;
+	uint8_t divisionCounter=0;
+	uint8_t i, searchIndexStart, searchIndexStop, searchIndexRange;
 
   if (!_assignedComObjectsNb) return false; // in case of empty list, we return immediately
 

@@ -22,6 +22,9 @@
 // Description : Handling of the KNX Telegrams
 // Module dependencies : none
 
+// Modified:
+// 2019-10, JWJ
+
 #include "KnxTelegram.h"
 
 KnxTelegram::KnxTelegram() { ClearTelegram(); }; // Clear telegram with default values
@@ -32,59 +35,59 @@ void KnxTelegram::ClearTelegram(void)
 // clear telegram with default values :
 // std FF, no repeat, normal prio, empty payload
 // multicast, routing counter = 6, payload length = 1
-  for (byte i =0; i < KNX_TELEGRAM_MAX_SIZE; i++) _telegram[i] = 0; 
+  for (uint8_t i =0; i < KNX_TELEGRAM_MAX_SIZE; i++) _telegram[i] = 0;
   _controlField = CONTROL_FIELD_DEFAULT_VALUE ; _routing= ROUTING_FIELD_DEFAULT_VALUE;
 }
 
    
-void KnxTelegram::SetLongPayload(const byte origin[], byte nbOfBytes) 
+void KnxTelegram::SetLongPayload(const uint8_t origin[], uint8_t nbOfBytes)
 {
   if (nbOfBytes > KNX_TELEGRAM_PAYLOAD_MAX_SIZE-2) nbOfBytes = KNX_TELEGRAM_PAYLOAD_MAX_SIZE-2;
-  for(byte i=0; i < nbOfBytes; i++) _payloadChecksum[i] = origin[i];
+  for(uint8_t i=0; i < nbOfBytes; i++) _payloadChecksum[i] = origin[i];
 }
 
 
 void KnxTelegram::ClearLongPayload(void)
 {
-  for(byte i=0; i < KNX_TELEGRAM_PAYLOAD_MAX_SIZE-1; i++) _payloadChecksum[i] = 0;
+  for(uint8_t i=0; i < KNX_TELEGRAM_PAYLOAD_MAX_SIZE-1; i++) _payloadChecksum[i] = 0;
 }
 
 
-void KnxTelegram::GetLongPayload(byte destination[], byte nbOfBytes) const
+void KnxTelegram::GetLongPayload(uint8_t destination[], uint8_t nbOfBytes) const
 {
   if (nbOfBytes > KNX_TELEGRAM_PAYLOAD_MAX_SIZE-2) nbOfBytes = KNX_TELEGRAM_PAYLOAD_MAX_SIZE-2 ;
-  for(byte i=0; i < nbOfBytes; i++) destination[i] = _payloadChecksum[i];
+  for(uint8_t i=0; i < nbOfBytes; i++) destination[i] = _payloadChecksum[i];
 };
     
 
-byte KnxTelegram::CalculateChecksum(void) const
+uint8_t KnxTelegram::CalculateChecksum(void) const
 {
-  byte indexChecksum, xorSum=0;  
+	uint8_t indexChecksum, xorSum=0;
   indexChecksum = KNX_TELEGRAM_HEADER_SIZE + GetPayloadLength() + 1;
-  for (byte i = 0; i < indexChecksum ; i++)   xorSum ^= _telegram[i]; // XOR Sum of all the databytes
-  return (byte)(~xorSum); // Checksum equals 1's complement of databytes XOR sum
+  for (uint8_t i = 0; i < indexChecksum ; i++)   xorSum ^= _telegram[i]; // XOR Sum of all the databytes
+  return (uint8_t)(~xorSum); // Checksum equals 1's complement of databytes XOR sum
 }
 
 
 void KnxTelegram::UpdateChecksum(void)
 {
-  byte indexChecksum, xorSum=0; 
+	uint8_t indexChecksum, xorSum=0;
   indexChecksum = KNX_TELEGRAM_HEADER_SIZE + GetPayloadLength() + 1;
-  for (byte i = 0; i < indexChecksum ; i++)   xorSum ^= _telegram[i]; // XOR Sum of all the databytes
+  for (uint8_t i = 0; i < indexChecksum ; i++)   xorSum ^= _telegram[i]; // XOR Sum of all the databytes
   _telegram[indexChecksum] = ~xorSum; // Checksum equals 1's complement of databytes XOR sum
 }
 
 
 void KnxTelegram::Copy(KnxTelegram& dest) const
 {
-  byte length = GetTelegramLength();
-  for (byte i=0; i<length ; i++)  dest._telegram[i] = _telegram[i];
+	uint8_t length = GetTelegramLength();
+  for (uint8_t i=0; i<length ; i++)  dest._telegram[i] = _telegram[i];
 }
 
 
 void KnxTelegram::CopyHeader(KnxTelegram& dest) const
 {
-  for(byte i=0; i < KNX_TELEGRAM_HEADER_SIZE; i++) dest._telegram[i] = _telegram[i];
+  for(uint8_t i=0; i < KNX_TELEGRAM_HEADER_SIZE; i++) dest._telegram[i] = _telegram[i];
 }
 
 
@@ -95,7 +98,7 @@ e_KnxTelegramValidity KnxTelegram::GetValidity(void) const
   if (!GetPayloadLength()) return KNX_TELEGRAM_INCORRECT_PAYLOAD_LENGTH ;
   if ((_commandH & COMMAND_FIELD_PATTERN_MASK) != COMMAND_FIELD_VALID_PATTERN) return KNX_TELEGRAM_INVALID_COMMAND_FIELD;
   if ( GetChecksum() != CalculateChecksum()) return KNX_TELEGRAM_INCORRECT_CHECKSUM ;
-  byte cmd=GetCommand();
+  uint8_t cmd=GetCommand();
   if  (    (cmd!=KNX_COMMAND_VALUE_READ) && (cmd!=KNX_COMMAND_VALUE_RESPONSE) 
        && (cmd!=KNX_COMMAND_VALUE_WRITE) && (cmd!=KNX_COMMAND_MEMORY_WRITE)) return KNX_TELEGRAM_UNKNOWN_COMMAND;
   return  KNX_TELEGRAM_VALID;
@@ -104,7 +107,7 @@ e_KnxTelegramValidity KnxTelegram::GetValidity(void) const
 
 void KnxTelegram::Info(String& str) const
 {
-  byte payloadLength = GetPayloadLength();
+	uint8_t payloadLength = GetPayloadLength();
 
   str+="SrcAddr=" + String(GetSourceAddress(),HEX);
   str+="\nTargetAddr=" + String(GetTargetAddress(),HEX);
@@ -119,21 +122,21 @@ void KnxTelegram::Info(String& str) const
     default : str+="ERR_VAL!"; break;
   }
   str+="\nPayload=" + String(GetFirstPayloadByte(),HEX)+' ';
-  for (byte i = 0; i < payloadLength-1; i++) str+=String(_payloadChecksum[i], HEX)+' ';
+  for (uint8_t i = 0; i < payloadLength-1; i++) str+=String(_payloadChecksum[i], HEX)+' ';
   str+='\n';
 }
 
 
 void KnxTelegram::KnxTelegram::InfoRaw(String& str) const
 {
-  for (byte i = 0; i < KNX_TELEGRAM_MAX_SIZE; i++) str+=String(_telegram[i], HEX)+' ';
+  for (uint8_t i = 0; i < KNX_TELEGRAM_MAX_SIZE; i++) str+=String(_telegram[i], HEX)+' ';
   str+='\n';
 }
 
 
 void KnxTelegram::InfoVerbose(String& str) const
 {
-  byte payloadLength = GetPayloadLength();
+	uint8_t payloadLength = GetPayloadLength();
   str+= "Repeat="; str+= IsRepeated() ? "YES" : "NO";
   str+="\nPrio=";
   switch(GetPriority())
@@ -160,7 +163,7 @@ void KnxTelegram::InfoVerbose(String& str) const
     default : str+="ERR_VAL!"; break;
   }
   str+="\nPayload=" + String(GetFirstPayloadByte(),HEX)+' ';
-  for (byte i = 0; i < payloadLength-1; i++) str+=String(_payloadChecksum[i], HEX)+' ';
+  for (uint8_t i = 0; i < payloadLength-1; i++) str+=String(_payloadChecksum[i], HEX)+' ';
   str+="\nValidity=";
    switch(GetValidity())
   {
