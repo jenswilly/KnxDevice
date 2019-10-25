@@ -111,9 +111,9 @@ class KnxDevice {
     ActionRingBuffer<type_tx_action, ACTIONS_QUEUE_SIZE> _txActionList; // Queue of transmit actions to be performed
     bool _initCompleted;                         // True when all the Com Object with Init attr have been initialized
     uint8_t _initIndex;                                // Index to the last initiated object
-    uint16_t _lastInitTimeMillis;                       // Time (in msec) of the last init (read) request on the bus
-    uint16_t _lastRXTimeMicros;                         // Time (in msec) of the last Tpuart Rx activity;
-    uint16_t _lastTXTimeMicros;                         // Time (in msec) of the last Tpuart Tx activity;
+    uint32_t _lastInitTimeMillis;                       // Time (in msec) of the last init (read) request on the bus
+    uint32_t _lastRXTimeMicros;                         // Time (in msec) of the last Tpuart Rx activity;
+    uint32_t _lastTXTimeMicros;                         // Time (in msec) of the last Tpuart Tx activity;
     KnxTelegram _txTelegram;                        // Telegram object used for telegrams sending
     KnxTelegram *_rxTelegram;                       // Reference to the telegram received by the TPUART
 #if defined(KNXDEVICE_DEBUG_INFO)

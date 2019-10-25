@@ -27,8 +27,6 @@
 #include "KnxDevice.h"
 #include "TimeUtils.h"
 
-static inline uint16_t TimeDeltaWord(uint16_t now, uint16_t before) { return (uint16_t)(now - before); }
-
 #ifdef KNXDEVICE_DEBUG_INFO
 const char KnxDevice::_debugInfoText[] = "KNXDEVICE INFO: ";
 #endif
@@ -110,14 +108,14 @@ type_tx_action action;
 void KnxDevice::task(void)
 {
 type_tx_action action;
-uint16_t nowTimeMillis, nowTimeMicros;
+uint32_t nowTimeMillis, nowTimeMicros;
 
   // STEP 1 : Initialize Com Objects having Init Read attribute
   if(!_initCompleted)
   { 
     nowTimeMillis = TimeUtils::millis();
     // To avoid EIB bus overloading, we wait for 500 ms between each Init read request
-    if (TimeDeltaWord(nowTimeMillis, _lastInitTimeMillis) > 500 )
+    if( TimeUtils::TimeDelta( nowTimeMillis, _lastInitTimeMillis ) > 500 )
     { 
       while ( (_initIndex< _comObjectsNb) && (_comObjectsList[_initIndex].GetValidity() )) _initIndex++;
 
@@ -143,7 +141,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
   // STEP 2 : Get new received EIB messages from the TPUART
   // The TPUART RX task is executed every 400 us
   nowTimeMicros = TimeUtils::micros();
-  if (TimeDeltaWord(nowTimeMicros, _lastRXTimeMicros) > 400)
+  if( TimeUtils::TimeDelta( nowTimeMicros, _lastRXTimeMicros ) > 400 )
   {
     _lastRXTimeMicros = nowTimeMicros;
     _tpuart->RXTask();
@@ -204,7 +202,7 @@ uint16_t nowTimeMillis, nowTimeMicros;
   // STEP 4 : LET THE TP-UART TRANSMIT EIB MESSAGES
   // The TPUART TX task is executed every 800 us
   nowTimeMicros = TimeUtils::micros();
-  if (TimeDeltaWord(nowTimeMicros, _lastTXTimeMicros) > 800)
+  if( TimeUtils::TimeDelta( nowTimeMicros, _lastTXTimeMicros ) > 800 )
   {
     _lastTXTimeMicros = nowTimeMicros;
     _tpuart->TXTask();

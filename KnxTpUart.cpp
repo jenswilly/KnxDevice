@@ -28,8 +28,6 @@
 #include "KnxTpUart.h"
 #include "TimeUtils.h"
 
-static inline uint16_t TimeDeltaWord(uint16_t now, uint16_t before) { return (uint16_t)(now - before); }
-
 #ifdef KNXTPUART_DEBUG_INFO
 const char KnxTpUart::_debugInfoText[] = "KNXTPUART INFO: ";
 #endif
@@ -84,7 +82,7 @@ KnxTpUart::~KnxTpUart()
 // Return KNX_TPUART_ERROR in case of TPUART Reset failure
 uint8_t KnxTpUart::Reset(void)
 {
-	uint16_t startTime, nowTime;
+	uint32_t startTime, nowTime;
 	uint8_t attempts = 10;
 
   if ( (_rx.state > RX_RESET) || (_tx.state > TX_RESET) ) 
@@ -103,7 +101,7 @@ uint8_t KnxTpUart::Reset(void)
     // the sequence is repeated every sec as long as we do not get the reset indication 
     _serial.write(TPUART_RESET_REQ); // send RESET REQUEST
 
-    for( nowTime = startTime = TimeUtils::millis(); TimeDeltaWord( nowTime, startTime) < 1000 /* 1 sec */ ; nowTime = TimeUtils::millis())
+    for( nowTime = startTime = TimeUtils::millis(); TimeUtils::TimeDelta( nowTime, startTime) < 1000 /* 1 sec */ ; nowTime = TimeUtils::millis())
     {
       if (_serial.available() > 0) 
       {
@@ -278,17 +276,17 @@ uint8_t KnxTpUart::SendTelegram(KnxTelegram& sentTelegram)
 void KnxTpUart::RXTask(void)
 {
 	uint8_t incomingByte;
-	uint16_t nowTime;
+	uint32_t nowTime;
 	static uint8_t readBytesNb; // Nb of read bytes during an EIB telegram reception
 	static KnxTelegram telegram; // telegram being received
 	static uint8_t addressedComObjectIndex; // index of the com object targeted by the received telegram
-	static uint16_t lastByteRxTimeMicrosec;
+	static uint32_t lastByteRxTimeMicrosec;
 
 // === STEP 1 : Check EOP in case a Telegram is being received ===
   if (_rx.state >= RX_EIB_TELEGRAM_RECEPTION_STARTED)
   { // a telegram reception is ongoing
-    nowTime = TimeUtils::micros(); // uint16_t cast because a 65ms looping counter is long enough
-    if( TimeDeltaWord( nowTime, lastByteRxTimeMicrosec ) > 2000 /* 2 ms */ )
+    nowTime = TimeUtils::micros();
+    if( TimeUtils::TimeDelta( nowTime, lastByteRxTimeMicrosec ) > 2000 /* 2 ms */ )
     { // EOP detected, the telegram reception is completed
 
       switch (_rx.state)
@@ -449,17 +447,17 @@ void KnxTpUart::RXTask(void)
 // Typical calling period is 800 usec.
 void KnxTpUart::TXTask(void)
 {
-	uint16_t nowTime;
+	uint32_t nowTime;
 	uint8_t txByte[2];
-	static uint16_t sentMessageTimeMillisec;
+	static uint32_t sentMessageTimeMillisec;
 
   // STEP 1 : Manage Message Acknowledge timeout
   switch (_tx.state)
   {
   case TX_WAITING_ACK :
     // A transmission ACK is awaited, increment Acknowledge timeout
-    nowTime = TimeUtils::millis(); // uint16_t is enough to count up to 500
-    if(TimeDeltaWord(nowTime,sentMessageTimeMillisec) > 500 /* 500 ms */ )
+    nowTime = TimeUtils::millis();
+    if( TimeUtils::TimeDelta( nowTime,sentMessageTimeMillisec ) > 500 /* 500 ms */ )
     { // The no-answer timeout value is defined as follows :
       // - The emission duration for a single max sized telegram is 40ms
       // - The telegram emission might be repeated 3 times (120ms) 
@@ -512,15 +510,15 @@ void KnxTpUart::TXTask(void)
 // Typical calling period is 400 usec.
 bool KnxTpUart::GetMonitoringData(type_MonitorData& data)
 {
-	uint16_t nowTime;
+	uint32_t nowTime;
 	static type_MonitorData currentData={true,0};
-	static uint16_t lastByteRxTimeMicrosec;
+	static uint32_t lastByteRxTimeMicrosec;
 
   // STEP 1 : Check EOP
   if (!(currentData.isEOP)) // check that we have not already detected an EOP
   {
-    nowTime = TimeUtils::micros(); // uint16_t cast because a 65ms counter is enough
-    if(TimeDeltaWord(nowTime,lastByteRxTimeMicrosec) > 2000 /* 2 ms */ )
+    nowTime = TimeUtils::micros();
+    if( TimeUtils::TimeDelta( nowTime,lastByteRxTimeMicrosec ) > 2000 /* 2 ms */ )
     {  // EOP detected
       currentData.isEOP = true;
       currentData.dataByte = 0;

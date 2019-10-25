@@ -8,13 +8,15 @@
 #ifndef KNXDEVICE_TIMEUTILS_H_
 #define KNXDEVICE_TIMEUTILS_H_
 
-#include "lpc_types.h"
+#include "board.h"
 
 class TimeUtils
 {
 public:
-	inline static uint16_t millis() { return 0; }
-	inline static uint16_t micros() { return 0; }
+	static void init();
+	inline static uint32_t millis() { return TimeUtils::micros() / 1000; }
+	inline static uint32_t micros() { return Chip_TIMER_ReadCount( LPC_TIMER32_0 ); }	// The timer is counting at 1 MHz so just return current value.
+	inline static uint32_t TimeDelta( uint32_t now, uint32_t before ) { return now - before; }	// This will work even with rollover
 
 private:
 	// Static-only class
