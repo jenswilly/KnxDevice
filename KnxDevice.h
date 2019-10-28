@@ -31,7 +31,7 @@
 #include "KnxComObject.h"
 #include "ActionRingBuffer.h"
 #include "KnxTpUart.h"
-#include "HardwareSerial.h"
+#include "../HardwareSerial.h"
 
 // !!!!!!!!!!!!!!! FLAG OPTIONS !!!!!!!!!!!!!!!!!
 // DEBUG :

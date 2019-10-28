@@ -36,7 +36,7 @@
 
 #include "KnxTelegram.h"
 #include "KnxComObject.h"
-#include "HardwareSerial.h"
+#include "../HardwareSerial.h"
 
 // !!!!!!!!!!!!!!! FLAG OPTIONS !!!!!!!!!!!!!!!!!
 // DEBUG :

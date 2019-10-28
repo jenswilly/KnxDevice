@@ -121,6 +121,7 @@ enum e_KnxTelegramValidity { KNX_TELEGRAM_VALID = 0 ,
                              KNX_TELEGRAM_INCORRECT_CHECKSUM };
 
 class KnxTelegram {
+public:
     union {
     	uint8_t _telegram[KNX_TELEGRAM_MAX_SIZE]; // byte 0 to 22
         struct {

@@ -27,6 +27,7 @@
 
 #include "KnxTpUart.h"
 #include "TimeUtils.h"
+#include <cstring>
 
 #ifdef KNXTPUART_DEBUG_INFO
 const char KnxTpUart::_debugInfoText[] = "KNXTPUART INFO: ";
@@ -283,10 +284,11 @@ void KnxTpUart::RXTask(void)
 	static uint32_t lastByteRxTimeMicrosec;
 
 // === STEP 1 : Check EOP in case a Telegram is being received ===
+	/*
   if (_rx.state >= RX_EIB_TELEGRAM_RECEPTION_STARTED)
   { // a telegram reception is ongoing
     nowTime = TimeUtils::micros();
-    if( TimeUtils::TimeDelta( nowTime, lastByteRxTimeMicrosec ) > 2000 /* 2 ms */ )
+    if( TimeUtils::TimeDelta( nowTime, lastByteRxTimeMicrosec ) > 2000 )
     { // EOP detected, the telegram reception is completed
 
       switch (_rx.state)
@@ -318,6 +320,7 @@ void KnxTpUart::RXTask(void)
       _rx.state = RX_IDLE_WAITING_FOR_CTRL_FIELD;
     } // end EOP detected
   }
+*/
   
 // === STEP 2 : Get New RX Data ===
   if (_serial.available() > 0) 
@@ -327,113 +330,108 @@ void KnxTpUart::RXTask(void)
 	
     switch (_rx.state)
     {
-      case RX_IDLE_WAITING_FOR_CTRL_FIELD:
-          // CASE OF EIB MESSAGE
-          if ((incomingByte & EIB_CONTROL_FIELD_PATTERN_MASK) == EIB_CONTROL_FIELD_VALID_PATTERN)
-          {
-            _rx.state = RX_EIB_TELEGRAM_RECEPTION_STARTED; 
-            readBytesNb = 1; telegram.WriteRawByte(incomingByte,0);
-          }
-          // CASE OF TPUART_DATA_CONFIRM_SUCCESS NOTIFICATION
-          else if (incomingByte == TPUART_DATA_CONFIRM_SUCCESS) 
-          {
-            if (_tx.state == TX_WAITING_ACK)
-            {
-              _tx.ackFctPtr(ACK_RESPONSE);
-              _tx.state = TX_IDLE;
-            }
+			case RX_IDLE_WAITING_FOR_CTRL_FIELD:
+				// CASE OF EIB MESSAGE
+				if( (incomingByte & EIB_CONTROL_FIELD_PATTERN_MASK) == EIB_CONTROL_FIELD_VALID_PATTERN ) {
+					_rx.state = RX_EIB_TELEGRAM_RECEPTION_STARTED;
+					readBytesNb = 1;
+					telegram.WriteRawByte( incomingByte, 0 );
+				}
+				// CASE OF TPUART_DATA_CONFIRM_SUCCESS NOTIFICATION
+				else if( incomingByte == TPUART_DATA_CONFIRM_SUCCESS ) {
+					if( _tx.state == TX_WAITING_ACK ) {
+						_tx.ackFctPtr( ACK_RESPONSE );
+						_tx.state = TX_IDLE;
+					}
 #if defined(KNXTPUART_DEBUG_ERROR)
-            else DebugError("Rx: unexpected TPUART_DATA_CONFIRM_SUCCESS received!\n");
+					else DebugError("Rx: unexpected TPUART_DATA_CONFIRM_SUCCESS received!\n");
 #endif
-          }
-          // CASE OF TPUART_RESET NOTIFICATION
-          else if (incomingByte == TPUART_RESET_INDICATION)
-          {
-        
-            if ( (_tx.state == TX_TELEGRAM_SENDING_ONGOING ) || (_tx.state == TX_WAITING_ACK ) )
-            { // response to the TP UART transmission
-              _tx.ackFctPtr(TPUART_RESET_RESPONSE);
-            }
-           _tx.state = TX_STOPPED;
-           _rx.state = RX_STOPPED;
-           _evtCallbackFct(TPUART_EVENT_RESET); // Notify RESET
-           return;
-          }
-          // CASE OF STATE_INDICATION RESPONSE
-          else if ((incomingByte & TPUART_STATE_INDICATION_MASK) == TPUART_STATE_INDICATION)
-          {
-            _evtCallbackFct(TPUART_EVENT_STATE_INDICATION); // Notify STATE INDICATION
-            _stateIndication = incomingByte;
+				}
+				// CASE OF TPUART_RESET NOTIFICATION
+				else if( incomingByte == TPUART_RESET_INDICATION ) {
+
+					if( (_tx.state == TX_TELEGRAM_SENDING_ONGOING) || (_tx.state == TX_WAITING_ACK) ) { // response to the TP UART transmission
+						_tx.ackFctPtr( TPUART_RESET_RESPONSE );
+					}
+					_tx.state = TX_STOPPED;
+					_rx.state = RX_STOPPED;
+					_evtCallbackFct( TPUART_EVENT_RESET ); // Notify RESET
+					return;
+				}
+				// CASE OF STATE_INDICATION RESPONSE
+				else if( (incomingByte & TPUART_STATE_INDICATION_MASK) == TPUART_STATE_INDICATION ) {
+					_evtCallbackFct( TPUART_EVENT_STATE_INDICATION ); // Notify STATE INDICATION
+					_stateIndication = incomingByte;
 #if defined(KNXTPUART_DEBUG_INFO)
-            DebugInfo("Rx: State Indication Received\n");
+					DebugInfo("Rx: State Indication Received\n");
 #endif
-          }
-          // CASE OF TPUART_DATA_CONFIRM_FAILED NOTIFICATION
-          else if (incomingByte == TPUART_DATA_CONFIRM_FAILED) 
-          {
-            // NACK following Telegram transmission
-            if (_tx.state == TX_WAITING_ACK)
-            {
-              _tx.ackFctPtr(NACK_RESPONSE);
-              _tx.state = TX_IDLE; 
-            }
+				}
+				// CASE OF TPUART_DATA_CONFIRM_FAILED NOTIFICATION
+				else if( incomingByte == TPUART_DATA_CONFIRM_FAILED ) {
+					// NACK following Telegram transmission
+					if( _tx.state == TX_WAITING_ACK ) {
+						_tx.ackFctPtr( NACK_RESPONSE );
+						_tx.state = TX_IDLE;
+					}
 #if defined(KNXTPUART_DEBUG_ERROR)
-            else DebugError("Rx: unexpected TPUART_DATA_CONFIRM_FAILED received!\n");
+					else DebugError("Rx: unexpected TPUART_DATA_CONFIRM_FAILED received!\n");
 #endif
-          }
+				}
 #if defined(KNXTPUART_DEBUG_ERROR)
-          // UNKNOWN CONTROL FIELD RECEIVED
-          else if (incomingByte)
-            DebugError("Rx: Unknown Control Field received\n");
+				// UNKNOWN CONTROL FIELD RECEIVED
+				else if (incomingByte)
+				DebugError("Rx: Unknown Control Field received\n");
 #endif
-          // else ignore "0" value sent on Reset by TPUART prior to TPUART_RESET_INDICATION
-          break;
+				// else ignore "0" value sent on Reset by TPUART prior to TPUART_RESET_INDICATION
+				break;
 
-      case RX_EIB_TELEGRAM_RECEPTION_STARTED :
-          telegram.WriteRawByte(incomingByte,readBytesNb);
-          readBytesNb++;
+			case RX_EIB_TELEGRAM_RECEPTION_STARTED:
+				telegram.WriteRawByte( incomingByte, readBytesNb );
+				readBytesNb++;
 
-          if (readBytesNb==3) 
-          {  // We have just received the source address
-             // we check whether the received EIB telegram is coming from us (i.e. telegram is sent by the TPUART itself)
-            if ( telegram.GetSourceAddress() == _physicalAddr )
-            { // the message is coming from us, we consider it as not addressed and we don't send any ACK service
-              _rx.state = RX_EIB_TELEGRAM_RECEPTION_NOT_ADDRESSED;
-            }
-          }
-          else if (readBytesNb==6) // We have just read the routing field containing the address type and the payload length
-          { // We check if the message is addressed to us in order to send the appropriate acknowledge
-            if(IsAddressAssigned(telegram.GetTargetAddress(), addressedComObjectIndex))
-            { // Message addressed to us
-              _rx.state = RX_EIB_TELEGRAM_RECEPTION_ADDRESSED;
-              //sent the correct ACK service now
-              // the ACK info must be sent latest 1,7 ms after receiving the address type octet of an addressed frame
-              _serial.write(TPUART_RX_ACK_SERVICE_ADDRESSED);
-            }
-            else
-            { // Message NOT addressed to us
-              _rx.state = RX_EIB_TELEGRAM_RECEPTION_NOT_ADDRESSED;
-              //sent the correct ACK service now
-              // the ACK info must be sent latest 1,7 ms after receiving the address type octet of an addressed frame
-              _serial.write(TPUART_RX_ACK_SERVICE_NOT_ADDRESSED);
-            }
-          } 
-          break;
+				if( readBytesNb == 3 ) {  // We have just received the source address
+										  // we check whether the received EIB telegram is coming from us (i.e. telegram is sent by the TPUART itself)
+					if( telegram.GetSourceAddress() == _physicalAddr ) { // the message is coming from us, we consider it as not addressed and we don't send any ACK service
+						_rx.state = RX_EIB_TELEGRAM_RECEPTION_NOT_ADDRESSED;
+					}
+				}
+				else if( readBytesNb == 6 ) { // We have just read the routing field containing the address type and the payload length
+					/// JWJ: copy 6 bytes header for debugging
+					uint8_t header[ 6 ];
+					memcpy( header, telegram._telegram, 6 );
+					///
 
-      case RX_EIB_TELEGRAM_RECEPTION_ADDRESSED :
-          if (readBytesNb == KNX_TELEGRAM_MAX_SIZE) _rx.state = RX_EIB_TELEGRAM_RECEPTION_LENGTH_INVALID;
-          else
-          {
-          telegram.WriteRawByte(incomingByte,readBytesNb);
-          readBytesNb++;
-          }
-          break;
+					// We check if the message is addressed to us in order to send the appropriate acknowledge
+					if( IsAddressAssigned( telegram.GetTargetAddress(), addressedComObjectIndex ) ) { // Message addressed to us
+						_rx.state = RX_EIB_TELEGRAM_RECEPTION_ADDRESSED;
+						//sent the correct ACK service now
+						// the ACK info must be sent latest 1,7 ms after receiving the address type octet of an addressed frame
+					//	_serial.write( TPUART_RX_ACK_SERVICE_ADDRESSED );
+					}
+					else { // Message NOT addressed to us
+						_rx.state = RX_EIB_TELEGRAM_RECEPTION_NOT_ADDRESSED;
+						//sent the correct ACK service now
+						// the ACK info must be sent latest 1,7 ms after receiving the address type octet of an addressed frame
+					//	_serial.write( TPUART_RX_ACK_SERVICE_NOT_ADDRESSED );
+					}
+				}
+				break;
 
-    //  case RX_EIB_TELEGRAM_RECEPTION_LENGTH_INVALID : break; // if the message is too long, nothing to do except waiting for EOP
-    //  case RX_EIB_TELEGRAM_RECEPTION_NOT_ADDRESSED : break; // if the message is not addressed, nothing to do except waiting for EOP
+			case RX_EIB_TELEGRAM_RECEPTION_ADDRESSED:
+				if( readBytesNb == KNX_TELEGRAM_MAX_SIZE )
+					_rx.state = RX_EIB_TELEGRAM_RECEPTION_LENGTH_INVALID;
+				else {
+					telegram.WriteRawByte( incomingByte, readBytesNb );
+					readBytesNb++;
+				}
+				break;
 
-      default : break;
-    } // switch (_rx.state)
+				//  case RX_EIB_TELEGRAM_RECEPTION_LENGTH_INVALID : break; // if the message is too long, nothing to do except waiting for EOP
+				//  case RX_EIB_TELEGRAM_RECEPTION_NOT_ADDRESSED : break; // if the message is not addressed, nothing to do except waiting for EOP
+
+			default:
+				break;
+		} // switch (_rx.state)
   } // if (_serial.available() > 0)
 }
 
@@ -554,7 +552,8 @@ bool KnxTpUart::IsAddressAssigned(uint16_t addr, uint8_t &index) const
   // if _assignedComObjectsNb >= 32 => divisionCounter = 2
   // if _assignedComObjectsNb >= 64 => divisionCounter = 3
   // if _assignedComObjectsNb >= 128 => divisionCounter = 4    
-  for (i=4; _assignedComObjectsNb >>i ; i++) divisionCounter++; 
+  for (i=4; _assignedComObjectsNb >>i ; i++)
+	  divisionCounter++;
 
   // the starting point is to search on the whole address range (0 -> _assignedComObjectsNb -1)
   searchIndexStart = 0; searchIndexStop = _assignedComObjectsNb - 1; searchIndexRange = _assignedComObjectsNb;
@@ -570,8 +569,19 @@ bool KnxTpUart::IsAddressAssigned(uint16_t addr, uint8_t &index) const
   }
   
   // search the address value and index in the reduced range
-  for (i = searchIndexStart; ((_comObjectsList[_orderedIndexTable[i]].GetAddr() != addr) && (i <= searchIndexStop)); i++);
-  if (i > searchIndexStop) return false; // Address is NOT part of the assigned addresses
+  for( i = searchIndexStart; ((_comObjectsList[_orderedIndexTable[i]].GetAddr() != addr) && (i <= searchIndexStop)); i++)
+	  ;
+
+  /// JWJ TEMP
+  /*
+  index = 0;
+  return true;
+  */
+  ///
+
+  if( i > searchIndexStop )
+	  return false; // Address is NOT part of the assigned addresses
+
   // Address is part of the assigned addresses
   index = _orderedIndexTable[i];
   return true;
