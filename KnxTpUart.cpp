@@ -284,7 +284,6 @@ void KnxTpUart::RXTask(void)
 	static uint32_t lastByteRxTimeMicrosec;
 
 // === STEP 1 : Check EOP in case a Telegram is being received ===
-	/*
   if (_rx.state >= RX_EIB_TELEGRAM_RECEPTION_STARTED)
   { // a telegram reception is ongoing
     nowTime = TimeUtils::micros();
@@ -320,7 +319,6 @@ void KnxTpUart::RXTask(void)
       _rx.state = RX_IDLE_WAITING_FOR_CTRL_FIELD;
     } // end EOP detected
   }
-*/
   
 // === STEP 2 : Get New RX Data ===
   if (_serial.available() > 0) 
@@ -396,23 +394,18 @@ void KnxTpUart::RXTask(void)
 					}
 				}
 				else if( readBytesNb == 6 ) { // We have just read the routing field containing the address type and the payload length
-					/// JWJ: copy 6 bytes header for debugging
-					uint8_t header[ 6 ];
-					memcpy( header, telegram._telegram, 6 );
-					///
-
 					// We check if the message is addressed to us in order to send the appropriate acknowledge
 					if( IsAddressAssigned( telegram.GetTargetAddress(), addressedComObjectIndex ) ) { // Message addressed to us
 						_rx.state = RX_EIB_TELEGRAM_RECEPTION_ADDRESSED;
 						//sent the correct ACK service now
 						// the ACK info must be sent latest 1,7 ms after receiving the address type octet of an addressed frame
-					//	_serial.write( TPUART_RX_ACK_SERVICE_ADDRESSED );
+						_serial.write( TPUART_RX_ACK_SERVICE_ADDRESSED );
 					}
 					else { // Message NOT addressed to us
 						_rx.state = RX_EIB_TELEGRAM_RECEPTION_NOT_ADDRESSED;
 						//sent the correct ACK service now
 						// the ACK info must be sent latest 1,7 ms after receiving the address type octet of an addressed frame
-					//	_serial.write( TPUART_RX_ACK_SERVICE_NOT_ADDRESSED );
+						_serial.write( TPUART_RX_ACK_SERVICE_NOT_ADDRESSED );
 					}
 				}
 				break;
@@ -571,13 +564,6 @@ bool KnxTpUart::IsAddressAssigned(uint16_t addr, uint8_t &index) const
   // search the address value and index in the reduced range
   for( i = searchIndexStart; ((_comObjectsList[_orderedIndexTable[i]].GetAddr() != addr) && (i <= searchIndexStop)); i++)
 	  ;
-
-  /// JWJ TEMP
-  /*
-  index = 0;
-  return true;
-  */
-  ///
 
   if( i > searchIndexStop )
 	  return false; // Address is NOT part of the assigned addresses

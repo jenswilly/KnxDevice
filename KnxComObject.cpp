@@ -49,8 +49,10 @@ KnxComObject::KnxComObject(uint16_t addr, e_KnxDPT_ID dptId, uint8_t indicator )
 		_longValue = (uint8_t *) malloc(_length-1);
 		for (uint8_t i=0; i <_length-1 ; i++) _longValue[i] = 0;
 	}  
-	if (_indicator & KNX_COM_OBJ_I_INDICATOR) _validity = false; // case of object with "InitRead" indicator
-	else _validity = true; // case of object without "InitRead" indicator
+	if( _indicator & KNX_COM_OBJ_I_INDICATOR )
+		_validity = false; // case of object with "InitRead" indicator
+	else
+		_validity = true; // case of object without "InitRead" indicator
 }
 
 
