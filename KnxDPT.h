@@ -281,7 +281,7 @@ enum e_KnxDPT_ID {
   KNX_DPT_14_005, // 14.005 F32 DPT_Value_Amplitude
   KNX_DPT_14_006, // 14.006 F32 DPT_Value_AngleRad
   KNX_DPT_14_007, // 14.007 F32 DPT_Value_AngleDeg
-  KNX_DPT_17_001  // 17.001 U8 DPT_Scene_Number
+  KNX_DPT_17_001  // 17.001 r2U6 DPT_Scene_Number
 };		 
 
 // Definition of the format according to the ID
@@ -393,7 +393,7 @@ const uint8_t KnxDPTIdToFormat[] = {
   KNX_DPT_FORMAT_F32, //  KNX_DPT_14_005, // 14.005 F32 DPT_Value_Amplitude
   KNX_DPT_FORMAT_F32, //  KNX_DPT_14_006, // 14.006 F32 DPT_Value_AngleRad
   KNX_DPT_FORMAT_F32, //  KNX_DPT_14_007, // 14.007 F32 DPT_Value_AngleDeg
-  KNX_DPT_FORMAT_U8   //  KNX_DPT_17_001  // 17.001 U8 DPT_Scene_Number
+  KNX_DPT_FORMAT_R2U6 //  KNX_DPT_17_001  // 17.001 r2U6 DPT_Scene_Number
 };
 
 #endif // KNXDPT_H
